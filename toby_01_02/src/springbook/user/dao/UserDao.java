@@ -9,14 +9,9 @@ import java.sql.SQLException;
 import springbook.user.domain.User;
 
 // JDBC를 이용한 등록과 조회 기능이 있는 UserDao 클래스
-public class UserDao {
+public abstract class UserDao {
 	// 새로운 사용자를 add.
 	public void add(User user) throws ClassNotFoundException, SQLException{
-		//old
-		//Class.forName("com.mysql.jdbc.Driver");
-		//Connection c = DriverManager.getConnection("jdbc:mysql://localhost:3306/toby_spring?characterEncoding=UTF-8","root","258080");
-		
-		//new
 		Connection c = getConnection();
 		
 		PreparedStatement ps = c.prepareStatement("insert into users(id, name, password) values(?,?,?)");
@@ -32,11 +27,6 @@ public class UserDao {
 	
 	//아이디를 가지고 사용자 정보를 get.
 	public User get(String id) throws ClassNotFoundException, SQLException {
-		//old
-		//Class.forName("com.mysql.jdbc.Driver");
-		//Connection c = DriverManager.getConnection("jdbc:mysql://localhost:3306/toby_spring?characterEncoding=UTF-8","root","258080");
-		
-		//new
 		Connection c = getConnection();
 		
 		PreparedStatement ps = c.prepareStatement("select * from users where id = ?");
@@ -56,30 +46,46 @@ public class UserDao {
 		return user;
 	}
 	
-	//new 중복된 DB연결 코드를 메소드로 추출.
-	private Connection getConnection() throws ClassNotFoundException, SQLException {
-		Class.forName("com.mysql.jdbc.Driver");
-		Connection c = DriverManager.getConnection("jdbc:mysql://localhost:3306/toby_spring?characterEncoding=UTF-8","root","258080");
-		return c;
+	// 구현 코드는 제거되고 추상 메소드로 바뀜. 메소드 구현은 서브클래스가 담당. 
+	public abstract Connection getConnection() throws ClassNotFoundException, SQLException; 
+	
+	
+	public class NUserDao extends UserDao {
+		@Override //상속을 통해 확장된 getConnection() 메소드
+		public Connection getConnection() throws ClassNotFoundException, SQLException {
+			// N 사 DB connection 코드.. 
+			Class.forName("com.mysql.jdbc.Driver");
+			Connection c = DriverManager.getConnection("jdbc:mysql://localhost:3306/toby_spring?characterEncoding=UTF-8","root","258080");
+			return c;
+		}
+	}
+	
+	
+	public class DUserDao extends UserDao {
+		@Override 
+		public Connection getConnection() throws ClassNotFoundException, SQLException {
+			// D 사 DB connection 코드.. 
+			Class.forName("com.mysql.jdbc.Driver");
+			Connection c = DriverManager.getConnection("jdbc:mysql://localhost:3306/toby_spring?characterEncoding=UTF-8","root","258080");
+			return c;
+		}
 	}
 	
 	public static void main(String[] args) throws ClassNotFoundException, SQLException{
-		UserDao dao = new UserDao();
-		
-		User user = new User();
-		user.setId("momo02");
-		user.setName("모모");
-		user.setPassword("1234");
-		
-		dao.add(user);
-		
-		System.out.println(user.getId() + " 등록 성공");
-		
-		User user2 = dao.get(user.getId());
-		
-		System.out.println(user2.getName());
-		System.out.println(user2.getPassword());
-		
-		System.out.println(user2.getId() + " 조회 성공");
+//		User user = new User();
+//		user.setId("momo02");
+//		user.setName("모모");
+//		user.setPassword("1234");
+//		
+//		dao.add(user);
+//		
+//		System.out.println(user.getId() + " 등록 성공");
+//		
+//		User user2 = dao.get(user.getId());
+//		
+//		System.out.println(user2.getName());
+//		System.out.println(user2.getPassword());
+//		
+//		System.out.println(user2.getId() + " 조회 성공");
 	}
 }
