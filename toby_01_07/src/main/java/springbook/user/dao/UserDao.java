@@ -13,9 +13,13 @@ import springbook.user.domain.User;
 public class UserDao {
 
 	private ConnectionMaker connectionMaker; 
-
-	public UserDao(ConnectionMaker connectionMaker) {
-		this.connectionMaker = connectionMaker; 
+	//old
+//	public UserDao(ConnectionMaker connectionMaker) {
+//		this.connectionMaker = connectionMaker; 
+//	}
+	//new : 수정자(setter)메소드 DI 방식을 사용.
+	public void setConnectionMaker(ConnectionMaker connectionMaker) {
+		this.connectionMaker = connectionMaker;
 	}
 	
 	public void add(User user) throws ClassNotFoundException, SQLException{
@@ -31,7 +35,7 @@ public class UserDao {
 		ps.close();
 		c.close();
 	}
-	
+
 	public User get(String id) throws ClassNotFoundException, SQLException {
 		Connection c = connectionMaker.makeConnection(); 
 		
