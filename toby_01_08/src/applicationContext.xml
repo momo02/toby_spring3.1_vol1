@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+	
+	<!-- class 속성에 지정하는 것은 자바메소드에서 오브젝트를 만들 때 사용하는 클래스 이름 -->
+	<bean id="connectionMaker" class="springbook.user.dao.DConnectionMaker" />
+	
+	<bean id="userDao" class="springbook.user.dao.UserDao">
+		<!-- ref 속성은 주입할 오브젝트를 정의한 빈의 id -->
+		<property name="connectionMaker" ref="connectionMaker" />
+	</bean>
+
+</beans>
