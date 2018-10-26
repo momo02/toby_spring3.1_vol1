@@ -12,15 +12,13 @@ import springbook.user.domain.User;
 // UserDaoTests는 UserDao와 ConnectionMaker구현 클래스와의 런타임 오브젝트 의존관계를 설정하는 책임을 담당.
 public class UserDaoTest {
 	public static void main(String[] args) throws ClassNotFoundException, SQLException{
-		//old
-		//ApplicationContext context = new AnnotationConfigApplicationContext(DaoFactory.class);
-		//new
+		
 		ApplicationContext context = new GenericXmlApplicationContext("applicationContext.xml");
 		
 		UserDao dao = context.getBean("userDao",UserDao.class); 
 		
 		User user = new User();
-		user.setId("momo111");
+		user.setId("momo");
 		user.setName("모모");
 		user.setPassword("1234");
 		

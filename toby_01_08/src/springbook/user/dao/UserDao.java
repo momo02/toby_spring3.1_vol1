@@ -6,24 +6,22 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import javax.sql.DataSource;
+
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 import springbook.user.domain.User;
 
 public class UserDao {
+	// UserDao에 주입될 의존 오브젝트 타입을 ConnectionMaker에서 DataSource로 변경.
+	private DataSource dataSource;
 
-	private ConnectionMaker connectionMaker; 
-	//old
-//	public UserDao(ConnectionMaker connectionMaker) {
-//		this.connectionMaker = connectionMaker; 
-//	}
-	//new : 수정자(setter)메소드 DI 방식을 사용.
-	public void setConnectionMaker(ConnectionMaker connectionMaker) {
-		this.connectionMaker = connectionMaker;
+	public void setDataSource(DataSource dataSource){
+		this.dataSource = dataSource;
 	}
 	
 	public void add(User user) throws ClassNotFoundException, SQLException{
-		Connection c = connectionMaker.makeConnection(); 
+		Connection c = dataSource.getConnection(); 
 		
 		PreparedStatement ps = c.prepareStatement("insert into users(id, name, password) values(?,?,?)");
 		ps.setString(1, user.getId());
@@ -37,7 +35,7 @@ public class UserDao {
 	}
 
 	public User get(String id) throws ClassNotFoundException, SQLException {
-		Connection c = connectionMaker.makeConnection(); 
+		Connection c = dataSource.getConnection(); 
 		
 		PreparedStatement ps = c.prepareStatement("select * from users where id = ?");
 		ps.setString(1, id);
