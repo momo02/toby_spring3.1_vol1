@@ -59,7 +59,7 @@ public class UserDao {
 		Connection c = dataSource.getConnection();
 		
 		PreparedStatement ps = c.prepareStatement("delete from users");
-		ps.executeQuery();
+		ps.executeUpdate();
 		
 		ps.close();
 		c.close();

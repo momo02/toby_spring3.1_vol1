@@ -45,4 +45,27 @@ public class UserDaoTest {
 		assertThat(user2.getName(), is(user.getName()));
 		assertThat(user2.getPassword(), is(user.getPassword()));
 	}
+	//getCount() 테스트
+	@Test
+	public void count() throws SQLException, ClassNotFoundException {
+		
+		ApplicationContext context = new GenericXmlApplicationContext("applicationContext.xml");
+		
+		UserDao dao = context.getBean("userDao",UserDao.class); 
+		User user1 = new User("user1","유저일","springno1");
+		User user2 = new User("user2","유저이","springno2");
+		User user3 = new User("user3","유저삼","springno3");
+		
+		dao.deleteAll();
+		assertThat(dao.getCount(), is(0));
+		
+		dao.add(user1);
+		assertThat(dao.getCount(), is(1));
+		
+		dao.add(user2);
+		assertThat(dao.getCount(), is(2));
+		
+		dao.add(user3);
+		assertThat(dao.getCount(), is(3));
+	}
 }
