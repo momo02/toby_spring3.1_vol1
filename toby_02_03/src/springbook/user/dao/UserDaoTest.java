@@ -9,6 +9,7 @@ import org.junit.Test;
 import org.junit.runner.JUnitCore;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.GenericXmlApplicationContext;
+import org.springframework.dao.EmptyResultDataAccessException;
 
 import springbook.user.domain.User;
 
@@ -28,22 +29,23 @@ public class UserDaoTest {
 		ApplicationContext context = new GenericXmlApplicationContext("applicationContext.xml");
 		
 		UserDao dao = context.getBean("userDao",UserDao.class); 
+		User user1 = new User("gongyou","공유","springno1");
+		User user2 = new User("sunmi","선미","springno2");
 		
 		dao.deleteAll();
 		assertThat(dao.getCount(), is(0));
 		
-		User user = new User();
-		user.setId("gongyou");
-		user.setName("공유");
-		user.setPassword("1234");
+		dao.add(user1);
+		dao.add(user2);
+		assertThat(dao.getCount(), is(2));
 		
-		dao.add(user);
-		assertThat(dao.getCount(), is(1));
+		User userget1 = dao.get(user1.getId());
+		assertThat(userget1.getName(), is(user1.getName()));
+		assertThat(userget1.getPassword(), is(user1.getPassword()));
 		
-		User user2 = dao.get(user.getId());
-	
-		assertThat(user2.getName(), is(user.getName()));
-		assertThat(user2.getPassword(), is(user.getPassword()));
+		User userget2 = dao.get(user2.getId());
+		assertThat(userget2.getName(), is(user2.getName()));
+		assertThat(userget2.getPassword(), is(user2.getPassword()));
 	}
 	//getCount() 테스트
 	@Test
@@ -67,5 +69,17 @@ public class UserDaoTest {
 		
 		dao.add(user3);
 		assertThat(dao.getCount(), is(3));
+	}
+	@Test(expected=EmptyResultDataAccessException.class) //테스트 중에 발생할 것으로 기대하는 예외 클래스를 지정해줌.
+	public void getUserFailure() throws SQLException, ClassNotFoundException {
+		ApplicationContext context = new GenericXmlApplicationContext("applicationContext.xml");
+		
+		UserDao dao = context.getBean("userDao",UserDao.class);
+		dao.deleteAll();
+		assertThat(dao.getCount(), is(0));
+		
+		//이 메소드 실행 중에 예외가 발생해야 한다.
+		//예외가 발생하지 않으면 테스트가 실패한다.
+		dao.get("unknown_id");
 	}
 }
