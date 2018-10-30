@@ -5,24 +5,28 @@ import static org.junit.Assert.assertThat;
 
 import java.sql.SQLException;
 
+import javax.sql.DataSource;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.datasource.SingleConnectionDataSource;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import springbook.user.domain.User;
 
 @RunWith(SpringJUnit4ClassRunner.class)//스프링의 테스트 컨텍스트 프레임워크의 JUnit 확장기능 지정.
-/* SpringJUnit4ClassRunnerfksms JUnit용 테스트 컨텍스트 프레임워크 확장 클래스를 지정해주면 
-   JUnit이 테스트를 진행하는 중에 테스트가 사용할 애플리케이션 컨텍스트를 만들고 관리하는 작업을 진행해준다 */
 @ContextConfiguration(locations="/applicationContext.xml")//테스트 컨텍스트가 자동으로 만들어줄 애플리케이션 컨텍스트의 위치 지정. 
+@DirtiesContext // 테스트 메소드에서 애플리케이션 컨텍스트의 구성이나 상태를 변경한다는 것을 테스트 컨텍스트 프레임워크에게 알려줌. 
+ 				// - 테스트 컨텍스트는 이 애노테이션이 붙은 테스트 클래스에는 애플리케이션 컨텍스트 공유를 허용하지 않는다. 
+				// - 메소드 레벨에도 @DirtiesContext 사용가능. 하나의 메소드드에서만 컨텍스트 상태를 변경한다면 해당 메소드에 @DirtiesContext를 붙여줌. 
+				//   해당 메소드의 실행이 끝나면 이후 진행되는 테스트를 위해 변경된 애플리케이션 컨텍스트는 폐기 된다. 
 public class UserDaoTest {
-	@Autowired // 애플리케이션 컨텍스트는 초기화할 때 자기 자신도 빈으로 등록. 따라서 애플리케이션 컨텍스트에는 ApplicationContext타입의 빈이 존재하는 셈이고 DI도 가능한 것. 
-	private ApplicationContext context; 
 	@Autowired
 	private UserDao dao; //setUp()메소드에서 만드는 오브젝트를 테스트 메소드에서 사용할 수 있도록 인스턴스 변수로 선언.
 	
@@ -32,9 +36,10 @@ public class UserDaoTest {
 	
 	@Before //JUnit 제공 어노테이션. @Test 메소드가 실행되기 전에 먼저 실행돼야하는 메소드를 정의.
 	public void setUp(){
-
-		System.out.println(this.context); //context는 세번 모두 동일 >> 하나의 애플리케이션 컨텍스트가 만들어져 모든 테스트 메소드에서 사용됨.
-		System.out.println(this); //반면에 UserDaoTest의 오브젝트는 매번 주소값이 다름 >> JUnit은 테스트 메소드를 실행할 때마다 새로운 테스트 오브젝트를 만들기 때문. 
+		
+		//테스트에서 UserDao가 사용할 DateSource오브젝트를 직접 생성.
+		DataSource dataSource = new SingleConnectionDataSource("jdbc:mysql://localhost:3306/testdb?characterEncoding=UTF-8","root","1234",true);
+		dao.setDataSource(dataSource); //코드에 의한 수동 DI
 		
 		this.user1 = new User("user1","유저일","springno1");
 		this.user2 = new User("user2","유저이","springno2");
