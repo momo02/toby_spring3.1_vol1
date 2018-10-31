@@ -20,10 +20,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import springbook.user.domain.User;
 
-@RunWith(SpringJUnit4ClassRunner.class)//스프링의 테스트 컨텍스트 프레임워크의 JUnit 확장기능 지정.
-@ContextConfiguration(locations="/test-applicationContext.xml")//테스트용 
 public class UserDaoTest {
-	@Autowired
 	private UserDao dao; //setUp()메소드에서 만드는 오브젝트를 테스트 메소드에서 사용할 수 있도록 인스턴스 변수로 선언.
 	
 	private User user1;
@@ -32,6 +29,10 @@ public class UserDaoTest {
 	
 	@Before //JUnit 제공 어노테이션. @Test 메소드가 실행되기 전에 먼저 실행돼야하는 메소드를 정의.
 	public void setUp(){
+		//오브젝트 생성, 관계설정 등을 모두 직접 해준다.
+		dao = new UserDao();
+		DataSource dataSource = new SingleConnectionDataSource("jdbc:mysql://localhost:3306/testdb?characterEncoding=UTF-8","root","1234",true);
+		dao.setDataSource(dataSource);
 		
 		this.user1 = new User("user1","유저일","springno1");
 		this.user2 = new User("user2","유저이","springno2");
