@@ -13,7 +13,7 @@ import org.springframework.dao.EmptyResultDataAccessException;
 
 import springbook.user.domain.User;
 
-public class UserDao {
+public abstract class UserDao {
 	// UserDao에 주입될 의존 오브젝트 타입을 ConnectionMaker에서 DataSource로 변경.
 	private DataSource dataSource;
 
@@ -65,7 +65,7 @@ public class UserDao {
 		PreparedStatement ps = null;
 		try{
 			c = dataSource.getConnection();
-			ps = c.prepareStatement("delete from users");
+			ps = makeStatement(c);
 			ps.executeUpdate();
 		}catch(SQLException e){
 			throw e;
@@ -131,4 +131,16 @@ public class UserDao {
 			}
 		}
 	}
+	
+//	private PreparedStatement makeStatement(Connection c) throws SQLException {
+//		PreparedStatement ps;
+//		ps = c.prepareStatement("delete from users");
+//		return ps;
+//	}
+	
+	// *템플릿 메소드 패턴
+	// 상속을 통해 기능을 확장해서 사용하는 부분. 
+	// 변하지 않는 부분은 슈퍼클래스에 두고 변하는 부분은 추상 메소드로 정의해둬서 서브클래스에서 오버라이드하여 새롭게 정의해 쓰도록 하는것.
+	abstract protected PreparedStatement makeStatement(Connection c) throws SQLException;
+	
 }
