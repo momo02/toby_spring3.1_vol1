@@ -13,7 +13,7 @@ import org.springframework.dao.EmptyResultDataAccessException;
 
 import springbook.user.domain.User;
 
-public abstract class UserDao {
+public class UserDao {
 	// UserDao에 주입될 의존 오브젝트 타입을 ConnectionMaker에서 DataSource로 변경.
 	private DataSource dataSource;
 
@@ -65,7 +65,13 @@ public abstract class UserDao {
 		PreparedStatement ps = null;
 		try{
 			c = dataSource.getConnection();
-			ps = makeStatement(c);
+			
+			StatementStrategy strategy = new DeleteAllStatement();
+			ps = strategy.makeStatement(c);
+			//-> 컨텍스트 안에서 이미 구체적인 전략 클래스인 DeleteAllStatement를 사용하도록 고정되어 있음.
+			//컨텍스트가 StatementStrategy인터페이스뿐 아니라 특정 구현 클래스인 DeleteAllStatement를 직접 알고있다는 건,
+			//전략 패턴에도, OCP(개방 패쇄 원칙)에도 잘 들어맞지 않음. -> 개선 필요! 
+			
 			ps.executeUpdate();
 		}catch(SQLException e){
 			throw e;
@@ -131,16 +137,5 @@ public abstract class UserDao {
 			}
 		}
 	}
-	
-//	private PreparedStatement makeStatement(Connection c) throws SQLException {
-//		PreparedStatement ps;
-//		ps = c.prepareStatement("delete from users");
-//		return ps;
-//	}
-	
-	// *템플릿 메소드 패턴
-	// 상속을 통해 기능을 확장해서 사용하는 부분. 
-	// 변하지 않는 부분은 슈퍼클래스에 두고 변하는 부분은 추상 메소드로 정의해둬서 서브클래스에서 오버라이드하여 새롭게 정의해 쓰도록 하는것.
-	abstract protected PreparedStatement makeStatement(Connection c) throws SQLException;
 	
 }
