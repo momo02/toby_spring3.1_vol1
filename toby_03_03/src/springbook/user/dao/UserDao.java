@@ -1,14 +1,12 @@
 package springbook.user.dao;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import javax.sql.DataSource;
 
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.dao.EmptyResultDataAccessException;
 
 import springbook.user.domain.User;
@@ -21,17 +19,31 @@ public class UserDao {
 		this.dataSource = dataSource;
 	}
 	
-	public void add(User user) throws ClassNotFoundException, SQLException{
+	// *내부 클래스에서 외부의 변수를 사용할 때는 외부 변수는 반드시 final로 선언해줘야 함.
+	// (user파라미터는 메소드 내부에서 변경될 일이 없으므로 final로 선언해도 무방)
+	public void add(final User user) throws ClassNotFoundException, SQLException{
+		// add 메소드 내의 로컬 클래스로 이전한 AddStatement 
+		// (UserDao에서만 사용되고, UserDao의 메소드 로직에 강하게 결합되어 있음) 
+		class AddStatement implements StatementStrategy{
 //old
-//		Connection c = dataSource.getConnection(); 
-//		
-//		PreparedStatement ps = c.prepareStatement("insert into users(id, name, password) values(?,?,?)");
-//		ps.setString(1, user.getId());
-//		ps.setString(2, user.getName());
-//		ps.setString(3, user.getPassword());
+//			User user;
+//			
+//			//User정보를 생성자로부터 제공받도록 함.
+//			public AddStatement(User user){
+//				this.user = user;
+//			}
+			
+			public PreparedStatement makeStatement(Connection c) throws SQLException {
+				PreparedStatement ps = c.prepareStatement("insert into users(id, name, password) values(?,?,?)");
+				ps.setString(1, user.getId());
+				ps.setString(2, user.getName());
+				ps.setString(3, user.getPassword());
+				return ps;
+			}
+		}
 		
-		//new
-		StatementStrategy st = new AddStatement(user);
+//		StatementStrategy st = new AddStatement(user);
+		StatementStrategy st = new AddStatement(); //생성자 파라미터로 user를 전달하지 않아도 됨
 		jdbcContextWithStatementStrategy(st);
 	}
 	
