@@ -67,16 +67,7 @@ public class UserDao {
 	
 	//USERS 테이블의 모든 레코드를 삭제
 	public void deleteAll() throws SQLException {
-//old		
-//		this.jdbcContext.workWithStatementStrategy(new StatementStrategy() {
-//			public PreparedStatement makeStatement(Connection c) throws SQLException {
-//				PreparedStatement ps = c.prepareStatement("delete from users");
-//				return ps;
-//			}
-//		});
-		
-//new -> 변하지 않는 부분을 메서드로 분리시킴
-		executeSql("delete from users");
+		this.jdbcContext.executeSql("delete from users");
 	}
 	
 	//USERS 테이블의 레코드 개수를 돌려줌
@@ -120,13 +111,13 @@ public class UserDao {
 			}
 		}
 	}
-	
-	private void executeSql(final String query) throws SQLException{
-		this.jdbcContext.workWithStatementStrategy(new StatementStrategy() {                   
-			public PreparedStatement makeStatement(Connection c) throws SQLException {         
-				PreparedStatement ps = c.prepareStatement(query);                
-				return ps;                                                                     
-			}                                                                                  
-		});                                                                                    
-	}
+//old	
+//	private void executeSql(final String query) throws SQLException{
+//		this.jdbcContext.workWithStatementStrategy(new StatementStrategy() {                   
+//			public PreparedStatement makeStatement(Connection c) throws SQLException {         
+//				PreparedStatement ps = c.prepareStatement(query);                
+//				return ps;                                                                     
+//			}                                                                                  
+//		});                                                                                    
+//	}
 }

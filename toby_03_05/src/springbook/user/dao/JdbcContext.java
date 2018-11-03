@@ -30,6 +30,18 @@ public class JdbcContext {
 			if(ps != null){ try{ ps.close(); }catch(SQLException e){ } }                          
 			if(c != null){ try{ c.close(); }catch(SQLException e){ } }                            
 		}                                                                                         
-	}                                                                                             
+	} 
 	
+	//new
+	/*	이렇게 재사용 가능한 콜백을 담고 있는 메소드라면 DAO가 공유할 수 있는 템플릿 클래스 안으로 옮겨도 됨.
+		엄밀히 말해 템플릿은 JdbcContext클래스가 아니라 workWithStatementStrategy()메소드 이므로 
+		JdbcContext클래스로 콜백 생성과 템플릿 호출이 담긴 executeSql()메소드를 옮긴다고 해도 문제 될 것은 없음 */
+	public void executeSql(final String query) throws SQLException{                    
+		workWithStatementStrategy(new StatementStrategy() {            
+			public PreparedStatement makeStatement(Connection c) throws SQLException {  
+				PreparedStatement ps = c.prepareStatement(query);                       
+				return ps;                                                              
+			}                                                                           
+		});                                                                             
+	}                                                                                   
 }
