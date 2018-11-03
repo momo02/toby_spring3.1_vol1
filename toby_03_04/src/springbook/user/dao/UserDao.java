@@ -14,17 +14,26 @@ import springbook.user.domain.User;
 public class UserDao {
 	// UserDao에 주입될 의존 오브젝트 타입을 ConnectionMaker에서 DataSource로 변경.
 	private DataSource dataSource;
-
-	public void setDataSource(DataSource dataSource){
-		this.dataSource = dataSource;
-	}
-	
 	private JdbcContext jdbcContext;
 	
-	// JdbcContext를 DI 받도록 만든다.
-	public void setJdbcContext(JdbcContext jdbcContext) {
-		this.jdbcContext = jdbcContext;
+	public void setDataSource(DataSource dataSource){
+		//new -> DI 컨테이너가 setDataSource 메소드를 호출하여 DataSource 오브젝트를 주입해줄 때, JdbcContext에 대한 수동 DI 작업을 진행.
+		/* 	장점 : 굳이 인터페이스를 두지 않아도 될 만큼 긴밀한 관계를 갖는 DAO클래스와 JdbcContext를 어색하게 따로 빈으로 분리하지 않고
+		 	내부에서 직접 만들어 사용하면서도 다른 오브젝트에 대한 DI를 적용할 수 있다. 
+		 	단점 : JdbcContext를 여러 오브젝트가 사용하더라고 싱글톤으로 만들 수 없고, DI 작업을 위한 부가적인 코드가 필요하다.
+		*/
+		this.jdbcContext = new JdbcContext();
+		this.jdbcContext.setDataSource(dataSource);
+		this.dataSource = dataSource; //아직 JdbcContext를 적용하지 않은 메소드를 위해 저장해둠.
 	}
+	
+//old	
+//	private JdbcContext jdbcContext;
+//	
+//	// JdbcContext를 DI 받도록 만든다.
+//	public void setJdbcContext(JdbcContext jdbcContext) {
+//		this.jdbcContext = jdbcContext;
+//	}
 
 	// *내부 클래스에서 외부의 변수를 사용할 때는 외부 변수는 반드시 final로 선언해줘야 함.
 	// (user파라미터는 메소드 내부에서 변경될 일이 없으므로 final로 선언해도 무방)
@@ -120,23 +129,5 @@ public class UserDao {
 			}
 		}
 	}
-
-//old	
-//	// 컨텍스트에 해당하는 JDBC try/catch/finally 코드를 클라이언트 코드인 StatementStrategy를 만드는 부분에서 독립시킴.
-//	public void jdbcContextWithStatementStrategy(StatementStrategy stmt) throws SQLException{
-//		                                         //클라이언트가 컨텍스트를 호출할 때 넘겨줄 전략 파라미터
-//		Connection c = null;
-//		PreparedStatement ps = null;
-//		try{
-//			c = dataSource.getConnection();
-//			ps = stmt.makeStatement(c);
-//			ps.executeUpdate();
-//		}catch(SQLException e){
-//			throw e;
-//		}finally{
-//			if(ps != null){ try{ ps.close(); }catch(SQLException e){ } }
-//			if(c != null){ try{ c.close(); }catch(SQLException e){ } }
-//		}
-//	}
 	
 }
