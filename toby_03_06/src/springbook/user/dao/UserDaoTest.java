@@ -29,7 +29,7 @@ public class UserDaoTest {
 	
 	@Before //JUnit 제공 어노테이션. @Test 메소드가 실행되기 전에 먼저 실행돼야하는 메소드를 정의.
 	public void setUp(){
-//		//오브젝트 생성, 관계설정 등n을 모두 직접 해준다.
+//		//오브젝트 생성, 관계설정 등을 모두 직접 해준다.
 //		dao = new UserDao();
 //		DataSource dataSource = new SingleConnectionDataSource("jdbc:mysql://localhost:3306/testdb?characterEncoding=UTF-8","root","1234",true);
 //		dao.setDataSource(dataSource);
