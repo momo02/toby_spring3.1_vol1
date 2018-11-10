@@ -101,6 +101,11 @@ public class UserDaoTest {
 	public void getAll() throws SQLException, ClassNotFoundException {
 		dao.deleteAll();
 	
+		//데이터가 없는 경우에 대한 검증 코드 추가. 
+		//cf.query()는 결과가 없을 경우에 크기가 0인 List<T> 오브젝트를 리턴. getAll()은 query()가 돌려주는 결과를 그대로 리턴하도록 함. 
+		List<User> users0 = dao.getAll(); 
+		assertThat(users0.size(), is(0));
+		
 		//cf. getAll => 현재 등록되어있는 
 		dao.add(user1); //Id : gyumee
 		List<User> users1 = dao.getAll();
