@@ -4,6 +4,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.sql.SQLException;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -38,9 +39,9 @@ public class UserDaoTest {
 //		jdbcContext.setDataSource(dataSource);
 //		dao.setJdbcContext(jdbcContext);
 		
-		this.user1 = new User("user1","유저일","springno1");
-		this.user2 = new User("user2","유저이","springno2");
-		this.user3 = new User("user3","유저삼","springno3");
+		this.user1 = new User("gyumee","유저일","springno1");
+		this.user2 = new User("leegw700","유저이","springno2");
+		this.user3 = new User("bumjin","유저삼","springno3");
 	}
 	
 	@Test //JUnit에게 테스트용 메소드임을 알려줌.
@@ -90,5 +91,42 @@ public class UserDaoTest {
 		//이 메소드 실행 중에 예외가 발생해야 한다.
 		//예외가 발생하지 않으면 테스트가 실패한다.
 		dao.get("unknown_id");
+	}
+	
+	//getAll()에 대한 테스트
+	/* -> getAll()메소드는 현재 등록되어 있는 모든 사용자 정보를 가져온다.
+	 *    기본키인 id순으로 정렬해서 가져오도록 함.
+	 */    
+	@Test
+	public void getAll() throws SQLException, ClassNotFoundException {
+		dao.deleteAll();
+	
+		//cf. getAll => 현재 등록되어있는 
+		dao.add(user1); //Id : gyumee
+		List<User> users1 = dao.getAll();
+		assertThat(users1.size(), is(1));
+		checkSameUser(user1,users1.get(0));
+		
+		dao.add(user2); //Id : leegw700
+		List<User> users2 = dao.getAll();
+		assertThat(users2.size(), is(2));
+		checkSameUser(user1,users2.get(0));
+		checkSameUser(user2,users2.get(1));
+		
+		
+		dao.add(user3); //Id : bumjin
+		List<User> users3 = dao.getAll();
+		assertThat(users3.size(), is(3));
+		checkSameUser(user3,users3.get(0)); //user3의 id값이 알바벳순으로 가장 빠르므로 getAll()의 첫번째 엘리멘트여야 함.
+		checkSameUser(user1,users3.get(1));
+		checkSameUser(user2,users3.get(2));
+		
+	}
+	
+	//User오브젝트의 내용을 비교하는 검증 코드. 테스트에서 반복적으로 사용되므로 분리.
+	private void checkSameUser(User user1, User user2){
+		assertThat(user1.getId(), is(user2.getId()));
+		assertThat(user1.getName(), is(user2.getName()));
+		assertThat(user1.getPassword(), is(user2.getPassword()));
 	}
 }
