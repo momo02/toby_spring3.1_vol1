@@ -61,4 +61,15 @@ public class User {
 	public void setRecommend(int recommend) {
 		this.recommend = recommend;
 	}
+	//User의 레벨 업그레이드 작업용 메소드
+	public void upgradeLevel(){
+		Level nextLevel = this.level.nextLevel();
+		if(nextLevel == null){
+			throw new IllegalStateException(this.level + "은 업그레이드가 불가능합니다.");
+		}else{
+			this.level = nextLevel;
+		}
+		//cf. UserService의 canUpgradeLevel() 메소드에서 업그레이드 가능 여부를 미리 판단해주기는 하지만,
+		// User 오브젝트를 UserService만 사용하는 건 아니므로 스스로 예외상황에 대한 검증 기능을 갖고 있는 편이 안전.
+	}
 }
