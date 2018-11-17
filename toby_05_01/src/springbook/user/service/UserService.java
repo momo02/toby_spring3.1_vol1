@@ -8,6 +8,11 @@ import springbook.user.domain.User;
 
 //사용자 관리 비즈니스 로직을 담을 클래스 
 public class UserService {
+	//테스트와 애플리케이션 코드에 중복되는 상수 값(로그인 횟수, 추천 수)을 정수형 상수로 변경. 
+	//--> 업그레이드 조건 값이 바뀌는 경우 UserService의 상수 값만 변경해주면 됨.
+	public static final int MIN_LOGCOUNT_FOR_SILVER = 50;
+	public static final int MIN_RECCOMEND_FOR_GOLD = 30;
+	
 	UserDao userDao;
 	
 	//UserDao오브젝트의 DI가 가능하도록 수정자 메소드 추가.
@@ -36,8 +41,8 @@ public class UserService {
 		Level currentLevel = user.getLevel();
 		//레벨별로 구분해서 조건을 판단한다.
 		switch(currentLevel) {
-			case BASIC : return (user.getLogin() >= 50);
-			case SILVER : return (user.getRecommend() >= 30);
+			case BASIC : return (user.getLogin() >= MIN_LOGCOUNT_FOR_SILVER);
+			case SILVER : return (user.getRecommend() >= MIN_RECCOMEND_FOR_GOLD);
 			case GOLD : return false;
 			//현재 로직에서 다룰 수 없는 레벨이 주어지면 예외를 발생시킴. 새로운 레벨이 추가되고 로직을 수정하지 않으면 에러가 나서 확인할 수 있다. 
 			default : throw new IllegalArgumentException("Unknown Level: " + currentLevel);
