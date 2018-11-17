@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+	
+	<!-- class 속성에 지정하는 것은 자바메소드에서 오브젝트를 만들 때 사용하는 클래스 이름 -->
+	<bean id="userService" class="springbook.user.service.UserService">
+		<property name="userDao" ref="userDao"></property>
+	</bean>
+	
+	<bean id="userDao" class="springbook.user.dao.UserDaoJdbc">
+		<property name="dataSource" ref="dataSource"/>
+	</bean>
+	
+	<bean id="dataSource" class="org.springframework.jdbc.datasource.SimpleDriverDataSource">
+		<!-- driverClass는 String타입이 아니라 java.lang.Class타입. 
+		스프링이 프로퍼티 값을, 수정자(set)메소드의 파라미터 타입을 참고로 해서 적절한 형태로 변환해 준다.-->
+		<property name="driverClass" value="com.mysql.jdbc.Driver"/>
+		<property name="url" value="jdbc:mysql://localhost:3306/toby_spring?characterEncoding=UTF-8"/>
+		<property name="username" value="root"/>
+		<property name="password" value="1234"/>
+	</bean>
+	
+</beans>
