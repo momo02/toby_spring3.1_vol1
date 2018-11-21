@@ -6,6 +6,8 @@
 	<!-- class 속성에 지정하는 것은 자바메소드에서 오브젝트를 만들 때 사용하는 클래스 이름 -->
 	<bean id="userService" class="springbook.user.service.UserService">
 		<property name="userDao" ref="userDao"></property>
+		<!-- new -->
+		<property name="userLevelUpgradePolicy" ref="eventUserLevelUpgradePolicy"></property>
 	</bean>
 	
 	<bean id="userDao" class="springbook.user.dao.UserDaoJdbc">
@@ -19,6 +21,19 @@
 		<property name="url" value="jdbc:mysql://localhost:3306/testdb?characterEncoding=UTF-8"/>
 		<property name="username" value="root"/>
 		<property name="password" value="1234"/>
+	</bean>
+	
+	<!-- new 사용자 업그레이드 정책을 UserService에서 분리. 분리된 업그레이드 정책을 담은 오브젝트는 DI를 통해 UserService에 주입 
+	 예를 들어.. 이벤트 때는 새로운 업그레이드 정책을 사용한다고하면, 새로운 업그레이드 정책을 구현한 클래스를 따로 만들어서 DI해주면 된다.  
+	-->
+	<bean id="commonUserLevelUpgradePolicy" class="springbook.user.service.CommonUserLevelUpgradePolicy">
+		<property name="minLogcountForSilver" value="50"></property>
+		<property name="minReccomendForGold" value="30"></property>
+	</bean>
+	
+	<bean id="eventUserLevelUpgradePolicy" class="springbook.user.service.EventUserLevelUpgradePolicy">
+		<property name="minLogcountForSilver" value="20"></property>
+		<property name="minReccomendForGold" value="10"></property>
 	</bean>
 
 </beans>
