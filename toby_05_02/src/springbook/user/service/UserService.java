@@ -1,6 +1,13 @@
 package springbook.user.service;
 
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.List;
+
+import javax.sql.DataSource;
+
+import org.springframework.jdbc.datasource.DataSourceUtils;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import springbook.user.dao.UserDao;
 import springbook.user.domain.Level;
@@ -23,17 +30,48 @@ public class UserService {
 		this.userDao = userDao;
 	}
 	
+	//new 트랜잭션 동기화 방식을 적용한 UserService 
+	// Connection을 생성할 때 사용할 DataSource를 DI 받도록 한다.
+	private DataSource dataSource;
+	
+	public void setDataSource(DataSource dataSource){
+		this.dataSource = dataSource;
+	}
+	
 	//사용자 레벨 업그레이드 
-	public void upgradeLevels() {
-		//기본 작업 흐름만 남겨둔 upgradeLevels()
-		//모든 사용자 정보를 가져와 한 명씩 업그레이드가 가능한지 확인하고, 가능하면 업그레이드를 한다.
-		List<User> users = userDao.getAll();
-		for(User user : users){
-			if(canUpgradeLevel(user)){
-				upgradeLevel(user);
-			}
-		}
+	public void upgradeLevels() throws Exception {
+		//트랜잭션 동기화 관리자를 이용해 동기화 작업을 초기화
+		TransactionSynchronizationManager.initSynchronization();
+		//DB커넥션을 생성하고 트랜잭션을 시작. 이후의 DAO작업은 모두 여기서 시작한 트랜잭션 안에서 진행된다.
+		Connection c = DataSourceUtils.getConnection(dataSource);
+		// cf. datasource.getConnection() -> 이렇게 DataSource에서 Connection을 직접 가져오지 않고, 
+		// 스프링 유틸리티 메소드인 DataSourceUtils.getConnection()을 쓰는 이유는 
+		// Connection 오브젝트를 생성해줄 뿐만 아니라 트랜잭션 동기화에 사용하도록 저장소에 바인딩해주기 때문.
+		c.setAutoCommit(false);
 		
+		/*
+		 * 트랜잭션 동기화가 되어 있는 채로 JdbcTemplate를 사용하면, JdbcTemplate의 작업에서 동기화시킨 DB커넥션을 사용.
+		 * 이후 UserDao를 통해 진행되는 모든 JDBC작업은 upgradeLevels메소드에서 만든 Connection오브젝트를 사용하고 같은 트랜잭션에 참여하게 됨.
+		 */
+		try{
+			//모든 사용자 정보를 가져와 한 명씩 업그레이드가 가능한지 확인하고, 가능하면 업그레이드를 한다.
+			List<User> users = userDao.getAll();
+			for(User user : users){
+				if(canUpgradeLevel(user)){
+					upgradeLevel(user);
+				}
+			}
+			c.commit(); 
+		}catch (Exception e) {
+			c.rollback();
+			throw e;
+		}finally{
+			//스프링 유틸리티 메소드를 이용해 DB커넥션을 안전하게 닫는다. 
+			DataSourceUtils.releaseConnection(c, dataSource);
+			//동기화 작업 종료 및 정리
+			TransactionSynchronizationManager.unbindResource(this.dataSource);
+			TransactionSynchronizationManager.clearSynchronization();
+		}
 	}
 	
 	//업그레이드 가능 여부 확인 메소드 

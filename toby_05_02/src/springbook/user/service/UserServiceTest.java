@@ -8,6 +8,8 @@ import static org.junit.Assert.fail;
 import java.util.Arrays;
 import java.util.List;
 
+import javax.sql.DataSource;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -29,6 +31,8 @@ public class UserServiceTest {
 	UserService userService; 
 	@Autowired
 	UserDao userDao;
+	@Autowired
+	DataSource dataSource;
 	
 	List<User> users; //테스트 픽스처 
 	
@@ -73,7 +77,7 @@ public class UserServiceTest {
 	
 	//사용자 레벨 업그레이드 테스트 
 	@Test
-	public void upgradeLevels() {
+	public void upgradeLevels() throws Exception {
 		userDao.deleteAll();
 		for(User user : users) userDao.add(user);
 		
@@ -120,10 +124,11 @@ public class UserServiceTest {
 	//예외 발생 시 작업 취소 여부 테스트
 	//-> 사용자 레벨 업그레이드를 시도하다 중간에 예외가 발생했을 경우, 그 전에 업그레이드했던 사용자도 다시 원상태로 돌아갔는지를 확인 
 	@Test
-	public void upgradeAllOrNothing() {
+	public void upgradeAllOrNothing() throws Exception {
 		//예외를 발생시킬 4번째 사용자의 id를 넣어서 테스트용 UserService대역 오브젝트를 생성. 
 		UserService testUserService = new TestUserService(users.get(3).getId());
 		testUserService.setUserDao(this.userDao); //UserDao를 수동 DI 
+		testUserService.setDataSource(this.dataSource); //트랜잭션 동기화에 필요한 DataSource를 수동 DI
 		
 		userDao.deleteAll();
 		for(User user : users) userDao.add(user);
