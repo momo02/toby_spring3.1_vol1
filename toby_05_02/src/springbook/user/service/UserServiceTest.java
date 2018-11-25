@@ -16,6 +16,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.transaction.PlatformTransactionManager;
 
 import springbook.user.dao.UserDao;
 import springbook.user.domain.Level;
@@ -32,7 +33,8 @@ public class UserServiceTest {
 	@Autowired
 	UserDao userDao;
 	@Autowired
-	DataSource dataSource;
+	PlatformTransactionManager transactionManager;
+	
 	
 	List<User> users; //테스트 픽스처 
 	
@@ -128,7 +130,8 @@ public class UserServiceTest {
 		//예외를 발생시킬 4번째 사용자의 id를 넣어서 테스트용 UserService대역 오브젝트를 생성. 
 		UserService testUserService = new TestUserService(users.get(3).getId());
 		testUserService.setUserDao(this.userDao); //UserDao를 수동 DI 
-		testUserService.setDataSource(this.dataSource); //트랜잭션 동기화에 필요한 DataSource를 수동 DI
+//old	testUserService.setDataSource(this.dataSource); //트랜잭션 동기화에 필요한 DataSource를 수동 DI	
+		testUserService.setTransactionManager(transactionManager); 
 		
 		userDao.deleteAll();
 		for(User user : users) userDao.add(user);

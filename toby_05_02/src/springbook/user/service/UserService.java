@@ -24,33 +24,30 @@ public class UserService {
 	public static final int MIN_LOGCOUNT_FOR_SILVER = 50;
 	public static final int MIN_RECCOMEND_FOR_GOLD = 30;
 	
-	UserDao userDao;
+	private UserDao userDao;
 	
-	//UserDao오브젝트의 DI가 가능하도록 수정자 메소드 추가.
-	public UserDao getUserDao() {
-		return userDao;
-	}
+	private PlatformTransactionManager transactionManager;
+
 	public void setUserDao(UserDao userDao) {
 		this.userDao = userDao;
 	}
-	
-	//new 트랜잭션 동기화 방식을 적용한 UserService 
-	// Connection을 생성할 때 사용할 DataSource를 DI 받도록 한다.
-	private DataSource dataSource;
-	
-	public void setDataSource(DataSource dataSource){
-		this.dataSource = dataSource;
+
+	public void setTransactionManager(PlatformTransactionManager transactionManager) {
+		this.transactionManager = transactionManager;
 	}
-	
+
 	//사용자 레벨 업그레이드 
 	public void upgradeLevels() throws Exception {
-		//new -> 스프링이 제공하는 트랜잭션 추상화 API를 적용한 upgradeLevels() 
-		//스프링이 제공하는 트랜잭션 경계설정을 위한 추상 인터페이스는 PlatformTransactionManager.
-		//JDBC의 로컬 트랜잭션을 이용한다면 PlatformTransactionManager을 구현한 DataSourceTransactionManager를 사용하면 됨.
-		PlatformTransactionManager tansactionManager = new DataSourceTransactionManager(dataSource); //JDBC 트랜잭션 추상 오브젝트 생성
+// old
+//		//스프링이 제공하는 트랜잭션 추상화 API를 적용한 upgradeLevels() 
+//		//스프링이 제공하는 트랜잭션 경계설정을 위한 추상 인터페이스는 PlatformTransactionManager.
+//		//JDBC의 로컬 트랜잭션을 이용한다면 PlatformTransactionManager을 구현한 DataSourceTransactionManager를 사용하면 됨.
+//		PlatformTransactionManager tansactionManager = new DataSourceTransactionManager(dataSource); //JDBC 트랜잭션 추상 오브젝트 생성
+		
+		//new -> DI받은 트랜잭션 매니저를 공유해서 사용. 멀티스레드 환경에서도 안전하다.
 		//트랜잭션을 가져오는 요청인 getTransaction()메소드 호출 --> 트랜잭션 시작
 		//(필요에 따라 트랜잭션 매니저가 DB커넥션을 가져오는 작업도 같이 수행)
-		TransactionStatus status = tansactionManager.getTransaction(new DefaultTransactionDefinition()); //DefaultTransactionDefinition은 트랜잭션에 대한 속성을 담고 있음.
+		TransactionStatus status = this.transactionManager.getTransaction(new DefaultTransactionDefinition()); //DefaultTransactionDefinition은 트랜잭션에 대한 속성을 담고 있음.
 		/*
 		 * 트랜잭션 동기화가 되어 있는 채로 JdbcTemplate를 사용하면, JdbcTemplate의 작업에서 동기화시킨 DB커넥션을 사용.
 		 * 이후 UserDao를 통해 진행되는 모든 JDBC작업은 upgradeLevels메소드에서 만든 Connection오브젝트를 사용하고 같은 트랜잭션에 참여하게 됨.
@@ -63,9 +60,9 @@ public class UserService {
 					upgradeLevel(user);
 				}
 			}
-			tansactionManager.commit(status); 
+			this.transactionManager.commit(status); 
 		}catch (Exception e) {
-			tansactionManager.rollback(status);
+			this.transactionManager.rollback(status);
 			throw e;
 		}
 	}
