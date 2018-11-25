@@ -12,6 +12,9 @@ import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 
+import org.springframework.mail.MailMessage;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
@@ -93,28 +96,38 @@ public class UserService {
 		userDao.add(user);
 	}
 	
-	//JavaMail을 이용해 메일을 발송하는 가장 전형적인 코드(한글 인코딩 부분은 생략)
-	//cf. 자바에서 메일을 발송할 때는 표준 기술인 JavaMail을 사용.(javax.mail패키지에서 제공하는 자바의 이메일 클래스를 사용)
-	//==> SMTP프로토콜을 지원하는 메일 전송 서버가 준비되어 있다면, 이 코드는 정상적으로 동작할 것이고 안내 메일이 발송될 것이다.
-	private void sendUpgradeEMail(User user) {
-		Properties props = new Properties();
-		props.put("mail.smtp.host", "mail.ksug.org");
-		Session s = Session.getInstance(props, null);
+	/*	<< JavaMail을 이용한 테스트의 문제 >> 
+
+		실제 메일 전송을 수행하는 javaMail 대신에 
+		테스트에서 사용할 JavaMail과 같은 인터페이스를 같는 오브젝트를 만들어서 사용하면 
+		불필요한 메일 전송 요청을 보내지않는 테스트가 가능하나.. 
 		
-		MimeMessage message = new MimeMessage(s);
-		try{
-			message.setFrom(new InternetAddress("useradmin@ksug.org"));
-			message.addRecipient(Message.RecipientType.TO, new InternetAddress(user.getEmail()));
-			message.setSubject("Upgrade 안내");
-			message.setText("사용자님의 등급이 "+ user.getLevel().name() + "로 업그레이드되었습니다");
-			
-			Transport.send(message);
-		}catch(AddressException e){
-			throw new RuntimeException(e);
-		}catch(MessagingException e){
-			throw new RuntimeException(e);
-		}/*catch(UnsupportedEncodingException e){
-			throw new RuntimeException(e);
-		}*/
+		But! JavaMail의 API는 이 방법을 적용할수 X. 
+		JavaMail의 핵심 API에는 DataSource처럼 인터페이스로 만들어져서 구현을 바꿀 수 있는 게 없음.
+		
+		==> 이런 경우 '서비스 추상화'를 적용.
+		스프링은 JavaMail을 사용해 만든 코드는 쉽게 테스트하기 힘들다는 문제를 해결하기 위해서
+		JavaMail의 서비스 추상화 인터페이스인 MailSender를 제공. 
+		
+		이 인터페이스는 SimpleMailMessage라는 인터페이스를 구현한 클래스에 담긴 메일 메시지를 전송하는 메소드로만 구성.
+		기본적으로 JavaMail을 사용해 메일 발송 기능을 제공하는 JavaMailSenderImpl 클래스(MailSender 구현 클래스)를 이용하면 됨.
+	 */
+	
+	//스프링의 MailSender를 이용한 메일 발송 메소드
+	private void sendUpgradeEMail(User user) {
+		JavaMailSenderImpl mailSender = new JavaMailSenderImpl(); //MailSender 구현 클래스의 오브젝트를 생성
+		//JavaMailSenderImpl은 내부적으로 JavaMail API를 이용해 메일을 전송해준다.
+		mailSender.setHost("mail.server.com");
+		
+		//MailMessage 인터페이스의 구현 클래스 오브젝트(SimpleMailMessage)를 만들어 메일 내용을 작성.
+		SimpleMailMessage mailMessage = new SimpleMailMessage();
+		mailMessage.setTo(user.getEmail());
+		mailMessage.setFrom("useradmin@ksug.org");
+		mailMessage.setSubject("Upgrade 안내");
+		mailMessage.setText("사용자님의 등급이 " + user.getLevel().name() + "로 업그레이드되었습니다");
+		
+		mailSender.send(mailMessage);
+		//cf. 스프링의 예외처리 원칙에 따라 JavaMail을 처리하는 중 발생한 각종 예외를 MailException이라는 런타임 예외로 포장해 던져주기 때문에
+		//귀찮은 try/catch 블록을 만들지 않아도 된다.
 	}
 }
