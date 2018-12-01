@@ -14,6 +14,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mail.MailSender;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -34,7 +35,8 @@ public class UserServiceTest {
 	UserDao userDao;
 	@Autowired
 	PlatformTransactionManager transactionManager;
-	
+	@Autowired
+	MailSender mailSender;
 	
 	List<User> users; //테스트 픽스처 
 	
@@ -131,6 +133,7 @@ public class UserServiceTest {
 		UserService testUserService = new TestUserService(users.get(3).getId());
 		testUserService.setUserDao(this.userDao); //UserDao를 수동 DI 
 		testUserService.setTransactionManager(transactionManager); //트랜잭션 동기화에 필요한 PlatformTransactionManager를 수동 DI	
+		testUserService.setMailSender(mailSender);
 		
 		userDao.deleteAll();
 		for(User user : users) userDao.add(user);

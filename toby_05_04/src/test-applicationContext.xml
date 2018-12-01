@@ -15,9 +15,8 @@
 		<property name="dataSource" ref="dataSource"></property>
 	</bean>
 	
-	
 	<bean id="userDao" class="springbook.user.dao.UserDaoJdbc">
-		<property name="dataSource" ref="dataSource"/> <!-- UserDao 내에 아직 JdbcContext를 적용하지 않은 메소드가 있어서 제거하지 않음. -->
+		<property name="dataSource" ref="dataSource"/>
 	</bean>
 
 	<bean id="dataSource" class="org.springframework.jdbc.datasource.SimpleDriverDataSource">
@@ -29,8 +28,12 @@
 		<property name="password" value="1234"/>
 	</bean>
 	
-	<bean id="mailSender" class="org.springframework.mail.javamail.JavaMailSenderImpl">
+	<!-- old -->
+	<!-- <bean id="mailSender" class="org.springframework.mail.javamail.JavaMailSenderImpl">
 		<property name="host" value="mail.server.com"></property>
-	</bean>
+	</bean> -->
+	
+	<!-- new :: 테스트용 MailSender 구현 클래스로 변경 -->
+	<bean id="mailSender" class="springbook.user.service.DummyMailSender"/>
 	
 </beans>
