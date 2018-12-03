@@ -5,6 +5,7 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -14,7 +15,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mail.MailException;
 import org.springframework.mail.MailSender;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -61,6 +65,32 @@ public class UserServiceTest {
 		}
 	}
 	
+	/*
+	 * cf. 테스트 대역 : 테스트 대상이 사용하는 의존 오브젝트를 대체할 수 있도록 만든 오브젝트.
+	 * 테스트 대역 중에서 테스트 대상으로부터 전달받은 정보를 검증할 수 있도록 설계된 것을 '목 오브젝트'라고 함. 
+	 */
+	//목 오브젝트로 만든 메일 전송 확인용 클래스
+	//기능 	1. UserService의 코드가 정상적으로 수행되도록 돕는 역할  
+	//	    2. 테스트 대상이 넘겨주는 출력 값을 보관해두는 기능을 추가
+	static class MockMailSender implements MailSender {
+		//UserService로부터 전송 요청을 받은 메일 주소를 저장해두고 이를 읽을 수 있게 함.
+		private List<String> requests = new ArrayList<String>();
+		
+		public List<String> getRequest() {
+			return requests;
+		}
+	
+		public void send(SimpleMailMessage mailMessage) throws MailException {
+			requests.add(mailMessage.getTo()[0]); // 전송 요청을 받은 이메일 주소를 저장해둔다. 
+			//한 번에 한 명씩 보내기 때문에, 첫 번째 수신자 메일 주소를 미리 준비해둔 리스트에 저장.
+		}
+
+		public void send(SimpleMailMessage[] arg0) throws MailException {
+			
+		}
+
+	}
+	
 	@Before
 	public void setUp() {
 		users = Arrays.asList( //배열을 리스트로 만들어주는 편리한 메소드. 배열을 가변인자로 넣어주면 더욱 편리하다.
@@ -79,19 +109,30 @@ public class UserServiceTest {
 		assertThat(this.userService, is(notNullValue()));
 	}
 	
-	//사용자 레벨 업그레이드 테스트 
+	//사용자 레벨 업그레이드 + 메일 발송 대상을 확인하는 테스트 
 	@Test
+	@DirtiesContext //컨텍스트의 DI 설정을 변경하는 테스트라는 것을 알려준다.
 	public void upgradeLevels() throws Exception {
 		userDao.deleteAll();
 		for(User user : users) userDao.add(user);
 		
-		userService.upgradeLevels();
+		//메일 발송 결과를 테스트할 수 있도록 목 오브젝트를 만들어 userService의 의존 오브젝트로 주입
+		MockMailSender mockMailSender = new MockMailSender();
+		userService.setMailSender(mockMailSender);
+		
+		userService.upgradeLevels(); //-> 업그레이드 테스트, 메일 발송이 일어나면 MockMailSender 오브젝트의 requests 리스트에 그 결과가 저장됨 
 
 		checkLevelUpgraded(users.get(0), false);
 		checkLevelUpgraded(users.get(1), true);
 		checkLevelUpgraded(users.get(2), false);
 		checkLevelUpgraded(users.get(3), true);
 		checkLevelUpgraded(users.get(4), false);
+		
+		//목 오브젝트에 저장된 메일 수신자 목록을 가져와 업그레이드 대상과 일치하는지 확인.
+		List<String> request = mockMailSender.getRequest();
+		assertThat(request.size(), is(2));
+		assertThat(request.get(0), is(users.get(1).getEmail()));
+		assertThat(request.get(1), is(users.get(3).getEmail()));
 	}
 	
 	//다음 레벨로 업그레이드 되거나, 안되는 것을 확인
