@@ -27,14 +27,16 @@ import springbook.user.dao.UserDao;
 import springbook.user.domain.Level;
 import springbook.user.domain.User;
 
-import static springbook.user.service.UserService.MIN_LOGCOUNT_FOR_SILVER;
-import static springbook.user.service.UserService.MIN_RECCOMEND_FOR_GOLD;
+import static springbook.user.service.UserServiceImpl.MIN_LOGCOUNT_FOR_SILVER;
+import static springbook.user.service.UserServiceImpl.MIN_RECCOMEND_FOR_GOLD;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations="/test-applicationContext.xml")
 public class UserServiceTest {
 	@Autowired
 	UserService userService; 
+	@Autowired
+	UserServiceImpl userServiceImpl;
 	@Autowired
 	UserDao userDao;
 	@Autowired
@@ -51,7 +53,7 @@ public class UserServiceTest {
 	//UserService의 테스트용 대역 클래스
 	// (upgradeLevels메소드에서 모든 사용자에 대해 업그레이드 작업을 진행하다,
 	//  중간에 예외가 발생하여 작업이 중단되는 경우를 테스트)
-	static class TestUserService extends UserService { 
+	static class TestUserService extends UserServiceImpl { 
 		private String id;
 		
 		private TestUserService(String id){ //예외를 발생시킬 User오브젝트의 id를 지정할 수 있게 만든다.
@@ -118,7 +120,7 @@ public class UserServiceTest {
 		
 		//메일 발송 결과를 테스트할 수 있도록 목 오브젝트를 만들어 userService의 의존 오브젝트로 주입
 		MockMailSender mockMailSender = new MockMailSender();
-		userService.setMailSender(mockMailSender);
+		userServiceImpl.setMailSender(mockMailSender);
 		
 		userService.upgradeLevels(); //-> 업그레이드 테스트, 메일 발송이 일어나면 MockMailSender 오브젝트의 requests 리스트에 그 결과가 저장됨 
 
@@ -171,17 +173,20 @@ public class UserServiceTest {
 	@Test
 	public void upgradeAllOrNothing() throws Exception {
 		//예외를 발생시킬 4번째 사용자의 id를 넣어서 테스트용 UserService대역 오브젝트를 생성. 
-		UserService testUserService = new TestUserService(users.get(3).getId());
+		UserServiceImpl testUserService = new TestUserService(users.get(3).getId());
 		testUserService.setUserDao(this.userDao); //UserDao를 수동 DI 
-		testUserService.setTransactionManager(transactionManager); //트랜잭션 동기화에 필요한 PlatformTransactionManager를 수동 DI	
 		testUserService.setMailSender(mailSender);
+		
+		UserServiceTx txUserService = new UserServiceTx();
+		txUserService.setTransactionManager(transactionManager);
+		txUserService.setUserService(testUserService);
 		
 		userDao.deleteAll();
 		for(User user : users) userDao.add(user);
 		
 		try{
 			//TestUserService는 업그레이드 작업 중에 예외가 발생해야 함. 
-			testUserService.upgradeLevels(); 
+			txUserService.upgradeLevels(); 
 			fail("TestUserServiceException expected"); //정상 종료라면 문제가 있으니 실패
 			//cf. 혹여나 테스트 코드를 잘못 작성해서 예외 발생 없이 upgradeLevels()메소드가 정상 종료되어도
 			//    fail()메소드 때문에 테스트가 실패할 것.
