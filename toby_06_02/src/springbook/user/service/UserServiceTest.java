@@ -4,6 +4,11 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -14,6 +19,7 @@ import javax.sql.DataSource;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.MailException;
 import org.springframework.mail.MailSender;
@@ -116,11 +122,7 @@ public class UserServiceTest {
 	//사용자 레벨 업그레이드 + 메일 발송 대상을 확인하는 테스트 
 	@Test
 	public void upgradeLevels() throws Exception {
-// old -> 사용자 정보를 모두 삭제하고 테스트용 사용자 정보를 DB에 등록하는 등의 번거로운 준비 작업 불필요! 
-//		userDao.deleteAll();
-//		for(User user : users) userDao.add(user);
-
-		//new :: 고립된 테스트에서는 테스트 대상 오브젝트를 직접 생성.
+		//고립된 테스트에서는 테스트 대상 오브젝트를 직접 생성.
 		//--> 컨테이너에서 가져온 UserService 오브젝트는 DI를 통해서 많은 의존 오브젝트와 서비스, 외부 환경에 의존.
 		//    이제는 완전히 고립돼서 테스트만을 위해 독립적으로 동작하는 테스트 대상을 사용할 것이기 때문에 스프링 컨테이너에서 빈을 가져올 필요가 없음.
 		UserServiceImpl userServiceImpl = new UserServiceImpl();
@@ -134,14 +136,7 @@ public class UserServiceTest {
 		
 		userServiceImpl.upgradeLevels(); //-> 업그레이드 테스트, 메일 발송이 일어나면 MockMailSender 오브젝트의 requests 리스트에 그 결과가 저장됨 
 		
-// old -> DB에서 모든 사용자의 정보를 다시 가져와 일일이 확인하는 작업 불필요!
-//		checkLevelUpgraded(users.get(0), false);
-//		checkLevelUpgraded(users.get(1), true);
-//		checkLevelUpgraded(users.get(2), false);
-//		checkLevelUpgraded(users.get(3), true);
-//		checkLevelUpgraded(users.get(4), false);
-		
-		//new :: MockUserDao로부터 업데이트 결과를 가져와 업데이트 횟수와 정보를 확인.
+		//MockUserDao로부터 업데이트 결과를 가져와 업데이트 횟수와 정보를 확인.
 		List<User> updated = mockUserDao.getUpdated();
 		assertThat(updated.size(), is(2));
 		checkUserAndLevel(updated.get(0),"gongyu", Level.SILVER);
@@ -152,6 +147,40 @@ public class UserServiceTest {
 		assertThat(request.size(), is(2));
 		assertThat(request.get(0), is(users.get(1).getEmail()));
 		assertThat(request.get(1), is(users.get(3).getEmail()));
+	}
+	
+	//위의 upgradeLevels 메소드에 목 프레임워크 Mockito를 적용한 테스트 코드
+	@Test 
+	public void mockUpgradeLevels() throws Exception {
+		UserServiceImpl userServiceImpl = new UserServiceImpl();
+		//cf. Mockito와 같은 목 프레임워크의 특징은 목 클래스를 일일히 준비해둘 필요가 없다. 
+		//	  간단한 메소드 호출만으로 다이나믹하게 특정 인터페이스를 구현한 테스트용 목 오브젝트를 만들 수 있다. 
+		UserDao mockUserDao = mock(UserDao.class);
+		//getAll 메소드가 호출됐을 때, users리스트를 리턴해주라는 선언.
+		when(mockUserDao.getAll()).thenReturn(this.users);
+		userServiceImpl.setUserDao(mockUserDao);
+		
+		MailSender mockMailSender = mock(MailSender.class);
+		userServiceImpl.setMailSender(mockMailSender);
+		
+		userServiceImpl.upgradeLevels();
+		
+		//User타입의 오브젝트를 파라미터로 받으며 update()메소드가 두 번 호출됬는지 ( times(2) ) 확인하라(verify) 는 것. 
+		//any()를 사용하면 파라미터 내용은 무시하고 호출 횟수만 확인할 수 있다. 
+		verify(mockUserDao, times(2)).update(any(User.class));
+		//users.get(1)을 파라미터로 update()가 호출된 적이 있는지를 확인.
+		verify(mockUserDao).update(users.get(1));
+		assertThat(users.get(1).getLevel(), is(Level.SILVER));
+		verify(mockUserDao).update(users.get(3));
+		assertThat(users.get(3).getLevel(), is(Level.GOLD));
+		
+		ArgumentCaptor<SimpleMailMessage> mailMessageArg = ArgumentCaptor.forClass(SimpleMailMessage.class);
+		//파라미터를 정밀하게 검사하기 위해 캡쳐할 수도 있다 
+		//파라미터를 직접 비교하기보다는 파라미터의 내부 정보를 확인해야하는 경우에 유용.
+		verify(mockMailSender, times(2)).send(mailMessageArg.capture()); 
+		List<SimpleMailMessage> mailMessages = mailMessageArg.getAllValues();
+		assertThat(mailMessages.get(0).getTo()[0], is(users.get(1).getEmail()));
+		assertThat(mailMessages.get(1).getTo()[0], is(users.get(3).getEmail()));
 	}
 	
 	//id와 level을 확인하는 헬퍼 메소드
