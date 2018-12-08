@@ -10,6 +10,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -220,6 +221,7 @@ public class UserServiceTest {
 		assertThat(userWithoutLevelRead.getLevel(),is(Level.BASIC));
 	}
 	
+	// new :: UserServiceTx 대신 TransactionHandler를 이용하는 다이내믹 프록시를 사용하도록 수정.
 	//예외 발생 시 작업 취소 여부 테스트
 	//-> 사용자 레벨 업그레이드를 시도하다 중간에 예외가 발생했을 경우, 그 전에 업그레이드했던 사용자도 다시 원상태로 돌아갔는지를 확인 
 	@Test
@@ -228,10 +230,20 @@ public class UserServiceTest {
 		UserServiceImpl testUserService = new TestUserService(users.get(3).getId());
 		testUserService.setUserDao(this.userDao); //UserDao를 수동 DI 
 		testUserService.setMailSender(mailSender);
+// old		
+//		UserServiceTx txUserService = new UserServiceTx();
+//		txUserService.setTransactionManager(transactionManager);
+//		txUserService.setUserService(testUserService);
 		
-		UserServiceTx txUserService = new UserServiceTx();
-		txUserService.setTransactionManager(transactionManager);
-		txUserService.setUserService(testUserService);
+// new 
+		TransactionHandler txHandler = new TransactionHandler();
+		txHandler.setTarget(testUserService);
+		txHandler.setTransactionManager(transactionManager);
+		txHandler.setPattern("upgradeLevels");
+		//UserService 인터페이스 타입의 다이내믹 프록시 생성.
+		UserService txUserService = (UserService)Proxy.newProxyInstance(getClass().getClassLoader(), 
+																		new Class[] { UserService.class },
+																		txHandler);
 		
 		userDao.deleteAll();
 		for(User user : users) userDao.add(user);
