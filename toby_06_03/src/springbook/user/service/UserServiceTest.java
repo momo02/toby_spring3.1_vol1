@@ -22,6 +22,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.mail.MailException;
 import org.springframework.mail.MailSender;
 import org.springframework.mail.SimpleMailMessage;
@@ -51,6 +52,9 @@ public class UserServiceTest {
 	PlatformTransactionManager transactionManager;
 	@Autowired
 	MailSender mailSender;
+	//팩토리 빈을 가져오려면 애플리케이션 컨텍스트가 필요.
+	@Autowired 
+	ApplicationContext context;
 	
 	List<User> users; //테스트 픽스처 
 	
@@ -221,29 +225,31 @@ public class UserServiceTest {
 		assertThat(userWithoutLevelRead.getLevel(),is(Level.BASIC));
 	}
 	
-	// new :: UserServiceTx 대신 TransactionHandler를 이용하는 다이내믹 프록시를 사용하도록 수정.
 	//예외 발생 시 작업 취소 여부 테스트
 	//-> 사용자 레벨 업그레이드를 시도하다 중간에 예외가 발생했을 경우, 그 전에 업그레이드했던 사용자도 다시 원상태로 돌아갔는지를 확인 
 	@Test
+	@DirtiesContext //컨텍스트 무효화 애노테이션
 	public void upgradeAllOrNothing() throws Exception {
 		//예외를 발생시킬 4번째 사용자의 id를 넣어서 테스트용 UserService대역 오브젝트를 생성. 
 		UserServiceImpl testUserService = new TestUserService(users.get(3).getId());
 		testUserService.setUserDao(this.userDao); //UserDao를 수동 DI 
 		testUserService.setMailSender(mailSender);
-// old		
-//		UserServiceTx txUserService = new UserServiceTx();
-//		txUserService.setTransactionManager(transactionManager);
-//		txUserService.setUserService(testUserService);
-		
-// new 
-		TransactionHandler txHandler = new TransactionHandler();
-		txHandler.setTarget(testUserService);
-		txHandler.setTransactionManager(transactionManager);
-		txHandler.setPattern("upgradeLevels");
-		//UserService 인터페이스 타입의 다이내믹 프록시 생성.
-		UserService txUserService = (UserService)Proxy.newProxyInstance(getClass().getClassLoader(), 
-																		new Class[] { UserService.class },
-																		txHandler);
+// old
+//		TransactionHandler txHandler = new TransactionHandler();
+//		txHandler.setTarget(testUserService);
+//		txHandler.setTransactionManager(transactionManager);
+//		txHandler.setPattern("upgradeLevels");
+//		//UserService 인터페이스 타입의 다이내믹 프록시 생성.
+//		UserService txUserService = (UserService)Proxy.newProxyInstance(getClass().getClassLoader(), 
+//																		new Class[] { UserService.class },
+//																		txHandler);
+		//new
+		//팩토리 빈 자체를 가져와야 하므로 빈 이름에 &를 반드시 넣어야 한다.
+		TxProcyFactoryBean txProxyFactoryBean = 
+		context.getBean("&userService", TxProcyFactoryBean.class); 
+		txProxyFactoryBean.setTarget(testUserService); //테스트용 타깃 주입
+		//변경된 타깃 설정을 이용해서 트랜잭션 다이내믹 프록시 오브젝트를 다시 생성.
+		UserService txUserService = (UserService) txProxyFactoryBean.getObject();
 		
 		userDao.deleteAll();
 		for(User user : users) userDao.add(user);
