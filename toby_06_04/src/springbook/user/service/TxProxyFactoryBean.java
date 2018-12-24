@@ -5,7 +5,7 @@ import java.lang.reflect.Proxy;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.transaction.PlatformTransactionManager;
 
-public class TxProcyFactoryBean implements FactoryBean<Object>{ //->> 생성할 오브젝트 타입을 지정할 수도 있지만 범용적으로 사용하기 위해 Object로 사용.
+public class TxProxyFactoryBean implements FactoryBean<Object>{ //->> 생성할 오브젝트 타입을 지정할 수도 있지만 범용적으로 사용하기 위해 Object로 사용.
 	Object target; 
 	PlatformTransactionManager transactionManager; 
 	String pattern;

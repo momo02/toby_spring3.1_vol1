@@ -1,4 +1,4 @@
-package springbook.learningtest.proxy;
+package springbook.learningtest.jdk.proxy;
 
 //프록시 클래스
 //데코레이터 패턴을 적용해 타깃인 HelloTarget에 부가기능을 추가

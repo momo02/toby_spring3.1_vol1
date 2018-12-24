@@ -1,4 +1,4 @@
-package springbook.learningtest.proxy;
+package springbook.learningtest.jdk.proxy;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 
@@ -16,17 +16,6 @@ public class UppercaseHandler implements InvocationHandler {
 	public UppercaseHandler(Object target) {
 		this.target = target; 
 	}
-
-//	public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-//		//타깃 오브젝트의 메소드 호출(타깃으로 위임). 인터페이스의 메소드 호출에 모두 적용된다.
-//		Object ret = method.invoke(target, args); 
-//		//호출한 메소드의 리턴 타입이 String인 경우만 대문자 변경 기능을 적용하도록 수정.
-//		if(ret instanceof String) {
-//			return ((String)ret).toUpperCase(); //부가기능 제공.
-//		}else{
-//			return ret;
-//		}
-//	}
 	
 	/* InvocationHandler는 단일 메소드에서 모든 요청을 처리하기 때문에, 어떤 메소드에 어떤 기능을 적용할지를 선택하는 과정이 필요할 수도 있음.
 	 * 호출하는 메소드의 이름, 파라미터의 개수와 타입, 리턴 타입 등의 정보를 가지고 부가적인 기능을 적용할 메소드를 선택할 수 있다. 
@@ -34,6 +23,7 @@ public class UppercaseHandler implements InvocationHandler {
 	 * if.. 메소드 이름이 "say"로 시작하는 경우에만 대문자로 바꾸는 기능을 적용하고 싶다면 아래와 같이 Method파라미터에서 메소드 이름을 가져와 확인하는 방법을 사용.
 	 */
 	public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+		//타깃 오브젝트의 메소드 호출(타깃으로 위임). 인터페이스의 메소드 호출에 모두 적용된다.
 		Object ret = method.invoke(target, args);
 		if(ret instanceof String && method.getName().startsWith("say")) { //리턴 타입과 메소드 이름이 일치하는 경우에만 부가기능을 적용.
 			return ((String)ret).toUpperCase();

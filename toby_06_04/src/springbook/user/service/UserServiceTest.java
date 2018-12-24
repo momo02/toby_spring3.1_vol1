@@ -21,6 +21,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
+import org.springframework.aop.framework.ProxyFactoryBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.mail.MailException;
@@ -231,16 +232,16 @@ public class UserServiceTest {
 	@DirtiesContext //컨텍스트 무효화 애노테이션
 	public void upgradeAllOrNothing() throws Exception {
 		//예외를 발생시킬 4번째 사용자의 id를 넣어서 테스트용 UserService대역 오브젝트를 생성. 
-		UserServiceImpl testUserService = new TestUserService(users.get(3).getId());
+		TestUserService testUserService = new TestUserService(users.get(3).getId());
 		testUserService.setUserDao(this.userDao); //UserDao를 수동 DI 
 		testUserService.setMailSender(mailSender);
 
 		//팩토리 빈 자체를 가져와야 하므로 빈 이름에 &를 반드시 넣어야 한다.
-		TxProcyFactoryBean txProxyFactoryBean = 
-		context.getBean("&userService", TxProcyFactoryBean.class); 
+		ProxyFactoryBean txProxyFactoryBean = 
+		context.getBean("&userService", ProxyFactoryBean.class); //스프링 ProxyFactoryBean
 		txProxyFactoryBean.setTarget(testUserService); //테스트용 타깃 주입
-		//변경된 타깃 설정을 이용해서 트랜잭션 다이내믹 프록시 오브젝트를 다시 생성.
-		UserService txUserService = (UserService) txProxyFactoryBean.getObject();
+		//FactoryBean 타입으므로 동일하게 getObject()로 프록시를 가져온다.
+		UserService txUserService = (UserService) txProxyFactoryBean.getObject(); 
 		
 		userDao.deleteAll();
 		for(User user : users) userDao.add(user);
