@@ -46,7 +46,9 @@ public class UserServiceTest {
 	@Autowired
 	UserService userService; 
 	@Autowired
-	UserServiceImpl userServiceImpl;
+	UserService testUserService; //cf.같은 타입의 빈이 2개 존재하기 때문에 필드명을 기준으로 주입될 빈이 결정됨.
+//	@Autowired
+//	UserServiceImpl userServiceImpl;
 	@Autowired
 	UserDao userDao;
 	@Autowired
@@ -64,14 +66,10 @@ public class UserServiceTest {
 	}
 	
 	//UserService의 테스트용 대역 클래스
-	// (upgradeLevels메소드에서 모든 사용자에 대해 업그레이드 작업을 진행하다,
-	//  중간에 예외가 발생하여 작업이 중단되는 경우를 테스트)
-	static class TestUserService extends UserServiceImpl { 
-		private String id;
-		
-		private TestUserService(String id){ //예외를 발생시킬 User오브젝트의 id를 지정할 수 있게 만든다.
-			this.id = id;
-		}
+	// (upgradeLevels메소드에서 모든 사용자에 대해 업그레이드 작업을 진행하다, 중간에 예외가 발생하여 작업이 중단되는 경우를 테스트)
+	// new :: 포인트컷의 클래스 필터에 선정되도록 이름 변경.
+	static class TestUserServiceImpl extends UserServiceImpl { 
+		private String id = "jenny"; //테스트 코드에서 생성하는 것이 아니기때문에, 테스트 픽스처의 users(3)의 id값을 고정시킴.
 		
 		protected void upgradeLevel(User user){ //UserService의 메소드를 오버라이드
 			//지정된 id의 User오브젝트가 발견되면 예외를 던져서 작업을 강제로 중단시킨다.
@@ -229,26 +227,14 @@ public class UserServiceTest {
 	//예외 발생 시 작업 취소 여부 테스트
 	//-> 사용자 레벨 업그레이드를 시도하다 중간에 예외가 발생했을 경우, 그 전에 업그레이드했던 사용자도 다시 원상태로 돌아갔는지를 확인 
 	@Test
-	@DirtiesContext //컨텍스트 무효화 애노테이션
+	//@DirtiesContext ==> 스프링 컨텍스트의 빈 설정을 변경하지 않으므로 @DirtiesContext 어노테이션 제거.
 	public void upgradeAllOrNothing() throws Exception {
-		//예외를 발생시킬 4번째 사용자의 id를 넣어서 테스트용 UserService대역 오브젝트를 생성. 
-		TestUserService testUserService = new TestUserService(users.get(3).getId());
-		testUserService.setUserDao(this.userDao); //UserDao를 수동 DI 
-		testUserService.setMailSender(mailSender);
-
-		//팩토리 빈 자체를 가져와야 하므로 빈 이름에 &를 반드시 넣어야 한다.
-		ProxyFactoryBean txProxyFactoryBean = 
-		context.getBean("&userService", ProxyFactoryBean.class); //스프링 ProxyFactoryBean
-		txProxyFactoryBean.setTarget(testUserService); //테스트용 타깃 주입
-		//FactoryBean 타입으므로 동일하게 getObject()로 프록시를 가져온다.
-		UserService txUserService = (UserService) txProxyFactoryBean.getObject(); 
-		
 		userDao.deleteAll();
 		for(User user : users) userDao.add(user);
 		
 		try{
 			//TestUserService는 업그레이드 작업 중에 예외가 발생해야 함. 
-			txUserService.upgradeLevels(); 
+			this.testUserService.upgradeLevels(); 
 			fail("TestUserServiceException expected"); //정상 종료라면 문제가 있으니 실패
 			//cf. 혹여나 테스트 코드를 잘못 작성해서 예외 발생 없이 upgradeLevels()메소드가 정상 종료되어도
 			//    fail()메소드 때문에 테스트가 실패할 것.
@@ -259,6 +245,15 @@ public class UserServiceTest {
 		}
 		//예외가 발생하기 전에 레벨 변경이 있었던 사용자의 레벨이 처음 상태로 바뀌었나 확인 
 		checkLevelUpgraded(users.get(1), false);
+	}
+	
+	//자동 생성된 프록시 확인
+	@Test
+	public void advisorAutoProxyCreator() {
+		//DefaultAdvisorAutoProxyCreator에 의해 testUserService 빈이 프록시로 바꿔치기됐다면 
+		//getBean("testUserService") 로 가져온 오브젝트는 TestUserServiceImpl 타입이 아니라 JDK의 Proxy 타입일 것.
+		//-> 모든 JDK 다이내믹 프록시 방식으로 만들어지는 프록시는 Proxy클래스의 서브클래스이기 때문.
+		assertThat(testUserService, is(java.lang.reflect.Proxy.class)); //프록시로 변경된 오브젝트인지 확인.
 	}
 	
 }
