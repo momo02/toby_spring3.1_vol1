@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+	
+	<!-- old -->
+	<!-- UserService에 대한 트랜잭션 프록시 팩토리 빈 -->
+ 	<!-- <bean id="userService" class="springbook.user.service.TxProcyFactoryBean">
+		<property name="target" ref="userServiceImpl"></property>
+		<property name="transactionManager" ref="transactionManager"></property>
+		<property name="pattern" value="upgradeLevels"></property>
+		<property name="serviceInterface" value="springbook.user.service.UserService"></property>
+	</bean> --> 
+	<!-- cf..프로퍼티 타입이 Class인 경우는 value를 이용해 클래스 또는 인터페이스 이름을 넣어줌. -->
+	
+	<!-- 타깃 -->
+	<bean id="userServiceImpl" class="springbook.user.service.UserServiceImpl">
+		<property name="userDao" ref="userDao"></property>
+		<property name="mailSender" ref="mailSender"></property>
+	</bean> 
+	
+	<!-- 트랜잭션 어드바이스 빈 설정 -->
+	<bean id="transactionAdvice" class="springbook.user.service.TransactionAdvice">
+		<property name="transactionManager" ref="transactionManager"></property>
+	</bean>
+	
+	<!-- 포인트컷 빈 설정 -->
+	<bean id="transactionPointcut" class="org.springframework.aop.support.NameMatchMethodPointcut">
+		<property name="mappedName" value="upgrade*"></property>	
+	</bean>
+	
+	<!-- 어드바이스와 포인트컷을 담을 어드바이저 빈 설정-->
+	<bean id="tansactionAdvisor" class="org.springframework.aop.support.DefaultPointcutAdvisor">
+		<property name="advice" ref="transactionAdvice"/>
+		<property name="pointcut" ref="transactionPointcut"></property>
+	</bean>
+	
+	<!-- ProxyFactoryBean 설정 -->
+	<bean id="userService" class="org.springframework.aop.framework.ProxyFactoryBean">
+		<property name="target" ref="userServiceImpl"/>
+		<!-- 어드바이스와 어드바이저를 동시에 설정해줄 수 있는 프로퍼티. -->
+		<!-- 리스트에 어드바이스나 어드바이저의 빈 아이디를 값으로 넣어주면됨. 
+		     만약, 타킷의 모든 메소드에 적용해도 좋기 때문에 포인트컷의 적용이 필요 없다면 transactionAdvice를 넣는다.
+		-->
+		<property name="interceptorNames">
+			<list> 
+				<!-- 한 개 이상의 <value>태그를 넣을 수 있다. -->
+				<value>tansactionAdvisor</value>
+			</list>
+		</property>
+	</bean>
+	
+	<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<!-- DataSourceTransactionManager는 dataSource 빈으로부터 Connection을 가져와 트랜잭션 처리를 해야하므로 dataSource프로퍼티를 갖는다. -->
+		<property name="dataSource" ref="dataSource"></property>
+	</bean>
+	
+	<bean id="userDao" class="springbook.user.dao.UserDaoJdbc">
+		<property name="dataSource" ref="dataSource"/>
+	</bean>
+
+	<bean id="dataSource" class="org.springframework.jdbc.datasource.SimpleDriverDataSource">
+		<!-- driverClass는 String타입이 아니라 java.lang.Class타입. 
+		스프링이 프로퍼티 값을, 수정자(set)메소드의 파라미터 타입을 참고로 해서 적절한 형태로 변환해 준다.-->
+		<property name="driverClass" value="com.mysql.jdbc.Driver"/>
+		<property name="url" value="jdbc:mysql://localhost:3306/toby_spring?characterEncoding=UTF-8"/>
+		<property name="username" value="root"/>
+		<property name="password" value="1234"/>
+	</bean>
+	
+	<bean id="mailSender" class="org.springframework.mail.javamail.JavaMailSenderImpl">
+		<property name="host" value="mail.server.com"></property>
+	</bean>
+	
+</beans>
