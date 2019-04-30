@@ -68,7 +68,7 @@ public class UserServiceTest {
 	//UserService의 테스트용 대역 클래스
 	// (upgradeLevels메소드에서 모든 사용자에 대해 업그레이드 작업을 진행하다, 중간에 예외가 발생하여 작업이 중단되는 경우를 테스트)
 	// new :: 포인트컷의 클래스 필터에 선정되도록 이름 변경.
-	static class TestUserServiceImpl extends UserServiceImpl { 
+	static class TestUserService extends UserServiceImpl { 
 		private String id = "jenny"; //테스트 코드에서 생성하는 것이 아니기때문에, 테스트 픽스처의 users(3)의 id값을 고정시킴.
 		
 		protected void upgradeLevel(User user){ //UserService의 메소드를 오버라이드
