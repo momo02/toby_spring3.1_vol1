@@ -20,41 +20,21 @@
 		     즉 DI를 위한 프로퍼티 설정은 userService 빈의 프로퍼티를 그대로 상속받아, 별도로 userDao나 mailSender프로퍼티를 지정해줄 필요 없음. -->
 	<bean id="testUserService" class="springbook.user.service.UserServiceTest$TestUserService" parent="userService" />
 	
-	<!-- old :: 스프링 제공 트랜잭션 advice인 TransactionInterceptor로 변경 및 메소드 이름 패턴을 이용한 트랜잭션 속성 지정-->
-<!-- 	<bean id="transactionAdvice" class="org.springframework.transaction.interceptor.TransactionInterceptor" >
-			<property name="transactionManager" ref="transactionManager"></property>
-			<property name="transactionAttributes">
-				<props>
-					<prop key="get*">PROPAGATION_REQUIRED,readOnly,timeout_30</prop>
-					<prop key="upgrade*">PROPAGATION_REQUIRES_NEW,ISOLATION_SERIALIZABLE</prop>
-					<prop key="*">PROPAGATION_REQUIRED</prop>
-				</props>			
-			</property>
-	</bean> -->
-	
 	<!-- new ::tx 네임스페이스를 이용한 설정 -->
 	<!-- 이 태그에 의해 TransactionInterceptor 빈이 등록됨. 트랜잭션 매니저의 빈 아이디가 transactionManager라면 생략 가능. -->
-	<tx:advice id="transactionAdvice" transaction-manager="transactionManager"> 
+	<tx:advice id="transactionAdvice"> 
 		<tx:attributes>
-			<tx:method name="get*" propagation="REQUIRED" read-only="true" timeout="30"/>
-			<tx:method name="upgrade*" propagation="REQUIRES_NEW" isolation="SERIALIZABLE"/>
-			<tx:method name="*" propagation="REQUIRED"/> <!-- 디폴트 값이 스키마에 정의되어 있어서 REQUIRED라면 아예 생략도 가능  -->
+			<tx:method name="get*" read-only="true"/>
+			<tx:method name="*"/> <!-- propagation="REQUIRED" 라면 생략 가능  -->
 		</tx:attributes>
 	</tx:advice>
 	
 	<!-- aop 네임스페이스를 적용한 AOP 설정 빈  -->
-	<!-- case1. -->
-	<aop:config> 	<!-- AOP설정을 담는 부모 태그. 필요에 따라 AspectJAdvisorAutoProxyCreator를 빈으로 등록해줌 -->
-		<aop:pointcut id="transactionPointcut" expression="execution(* *..*ServiceImpl.upgrade*(..))" /> <!-- AspectJExpressionPointcut을 빈으로 등록해줌 -->
-		<aop:advisor advice-ref="transactionAdvice" pointcut-ref="transactionPointcut"/> <!-- DefaultBeanFactoryPointcutAdvisor를 등록해줌-->
-	</aop:config>
-	
-	<!-- case2. 포인트컷을 내장한 advisor 태그-->
-	<!-- but, 하나의 포인트컷을 여러 개의 어드바이저에서 공유하려고 하는 경우에는 위와 같이 포인트컷을 독립적인 <aop:pointcut> 태그로 등록. -->
-<!-- 	<aop:config> 	
-		<aop:advisor advice-ref="transactionAdvice" pointcut="execution(* *..*ServiceImpl.upgrade*(..))"/>
-	</aop:config> -->
-	
+	<!-- new :: upgradeLevels()에만 트랜잭션이 적용되게 했던 기존 포인트컷 표현식을 모든 비즈니스 로직의 서비스 빈에 적용되도록 수정.
+	            표현식은 가장 단순한 빈 이름 패턴을 이용 (아이디가 Service로 끝나는 모든 빈에 transactionAdvice 빈의 부가기능을 적용) -->
+	<aop:config> 	
+		<aop:advisor advice-ref="transactionAdvice" pointcut="bean(*Service)"/>
+	</aop:config> 
 	
 	<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
 		<!-- DataSourceTransactionManager는 dataSource 빈으로부터 Connection을 가져와 트랜잭션 처리를 해야하므로 dataSource프로퍼티를 갖는다. -->

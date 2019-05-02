@@ -24,6 +24,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.aop.framework.ProxyFactoryBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
+import org.springframework.dao.TransientDataAccessResourceException;
 import org.springframework.mail.MailException;
 import org.springframework.mail.MailSender;
 import org.springframework.mail.SimpleMailMessage;
@@ -67,7 +68,7 @@ public class UserServiceTest {
 	
 	//UserService의 테스트용 대역 클래스
 	// (upgradeLevels메소드에서 모든 사용자에 대해 업그레이드 작업을 진행하다, 중간에 예외가 발생하여 작업이 중단되는 경우를 테스트)
-	// new :: 포인트컷의 클래스 필터에 선정되도록 이름 변경.
+	// 포인트컷의 클래스 필터에 선정되도록 이름 변경.
 	static class TestUserService extends UserServiceImpl { 
 		private String id = "jenny"; //테스트 코드에서 생성하는 것이 아니기때문에, 테스트 픽스처의 users(3)의 id값을 고정시킴.
 		
@@ -75,6 +76,14 @@ public class UserServiceTest {
 			//지정된 id의 User오브젝트가 발견되면 예외를 던져서 작업을 강제로 중단시킨다.
 			if(user.getId().equals(this.id)) throw new TestUserServiceException();
 			super.upgradeLevel(user);
+		}
+		
+		//new :: 읽기전용 트랜잭션 속성을 적용한 메소드(get*) 에 쓰기 작업을 시도 
+		public List<User> getAll() { //읽기전용 트랜잭션의 대상인 get으로 시작하는 메소드를 오버라이드
+			for(User user : super.getAll()) {
+				super.update(user); //강제로 쓰기 시도. 읽기전용 속성으로 인한 예외가 발생해야 함.
+			}
+			return null;
 		}
 	}
 	
@@ -122,7 +131,7 @@ public class UserServiceTest {
 		assertThat(this.userService, is(notNullValue()));
 	}
 	
-	//new :: MockUserDao를 사용해서 만든 고립된 테스트
+	//MockUserDao를 사용해서 만든 고립된 테스트
 	//사용자 레벨 업그레이드 + 메일 발송 대상을 확인하는 테스트 
 	@Test
 	public void upgradeLevels() throws Exception {
@@ -256,5 +265,11 @@ public class UserServiceTest {
 		assertThat(testUserService, is(java.lang.reflect.Proxy.class)); //프록시로 변경된 오브젝트인지 확인.
 	}
 	
+	//new :: 읽기전용 속성 테스트
+	@Test(expected=TransientDataAccessResourceException.class)
+	public void readOnlyTransactionAttribute() {
+		//트랜잭션 속성이 제대로 적용됐다면 여기서 읽기전용 속성을 위반했기때문에 예외가 발생해야 함.
+		testUserService.getAll(); 
+	}
 }
 

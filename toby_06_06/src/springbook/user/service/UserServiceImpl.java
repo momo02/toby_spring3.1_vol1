@@ -83,4 +83,23 @@ public class UserServiceImpl implements UserService {
 		//cf. 스프링의 예외처리 원칙에 따라 JavaMail을 처리하는 중 발생한 각종 예외를 MailException이라는 런타임 예외로 포장해 던져주기 때문에
 		//귀찮은 try/catch 블록을 만들지 않아도 된다.
 	}
+
+	//new :: 추가 메소드 구현
+	//=> 이제 모든 User 관련 데이터 조작은 UserService라는 트랜잭션 경계를 통해 진행할 경우 모두 트랜잭션을 적용할 수 있게 됐다.
+	public void deleteAll() {
+		userDao.deleteAll();
+	}
+	
+	public User get(String id) {
+		return userDao.get(id);
+	}
+
+	public List<User> getAll() {
+		return userDao.getAll();
+	}
+
+	public void update(User user) {
+		userDao.update(user);
+	}
+	
 }
