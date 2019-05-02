@@ -1,7 +1,5 @@
 package springbook.learningtest.spring.pointcut;
 
-import org.springframework.aop.aspectj.AspectJExpressionPointcut;
-
 //포인트컷 테스트용 클래스
 public class Target implements TargetInterface {
 	public void hello() {}
