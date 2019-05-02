@@ -2,8 +2,10 @@
 <beans xmlns="http://www.springframework.org/schema/beans"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx"
 	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
-		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd">
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.0.xsd">
 	
 	<!-- 타깃 -->
 	<bean id="userService" class="springbook.user.service.UserServiceImpl">
@@ -11,21 +13,15 @@
 		<property name="mailSender" ref="mailSender"></property>
 	</bean> 
 	
-	<!-- new :: 테스트용 UserService의 등록 -->
+	<!-- 테스트용 UserService의 등록 -->
 	<!-- cf) static 멤버 클래스는 $로 지정.(특정 테스트 클래스에서만 사용되는 클래스는 static 멤버 클래스로 정의하는 것이 편리) -->
 	<!-- cf) parent 애트리뷰트를 사용하면 다른 빈 설정의 내용을 상속받을 수 있다.
 		     parent="userService" 라고 하면 userService 빈의 모든 설정을 그대로 가져와서 사용하겠다는 뜻. 
 		     즉 DI를 위한 프로퍼티 설정은 userService 빈의 프로퍼티를 그대로 상속받아, 별도로 userDao나 mailSender프로퍼티를 지정해줄 필요 없음. -->
 	<bean id="testUserService" class="springbook.user.service.UserServiceTest$TestUserService" parent="userService" />
 	
-	<!-- old -->
-	<!-- 트랜잭션 어드바이스 빈 설정 -->
-<!-- 	<bean id="transactionAdvice" class="springbook.user.service.TransactionAdvice">
-		<property name="transactionManager" ref="transactionManager"></property>
-	</bean> -->
-	
-	<!-- new :: 스프링 제공 트랜잭션 advice인 TransactionInterceptor로 변경 및 메소드 이름 패턴을 이용한 트랜잭션 속성 지정-->
-	<bean id="transactionAdvice" class="org.springframework.transaction.interceptor.TransactionInterceptor" >
+	<!-- old :: 스프링 제공 트랜잭션 advice인 TransactionInterceptor로 변경 및 메소드 이름 패턴을 이용한 트랜잭션 속성 지정-->
+<!-- 	<bean id="transactionAdvice" class="org.springframework.transaction.interceptor.TransactionInterceptor" >
 			<property name="transactionManager" ref="transactionManager"></property>
 			<property name="transactionAttributes">
 				<props>
@@ -34,9 +30,19 @@
 					<prop key="*">PROPAGATION_REQUIRED</prop>
 				</props>			
 			</property>
-	</bean>
+	</bean> -->
 	
-	<!-- new :: aop 네임스페이스를 적용한 AOP 설정 빈  -->
+	<!-- new ::tx 네임스페이스를 이용한 설정 -->
+	<!-- 이 태그에 의해 TransactionInterceptor 빈이 등록됨. 트랜잭션 매니저의 빈 아이디가 transactionManager라면 생략 가능. -->
+	<tx:advice id="transactionAdvice" transaction-manager="transactionManager"> 
+		<tx:attributes>
+			<tx:method name="get*" propagation="REQUIRED" read-only="true" timeout="30"/>
+			<tx:method name="upgrade*" propagation="REQUIRES_NEW" isolation="SERIALIZABLE"/>
+			<tx:method name="*" propagation="REQUIRED"/> <!-- 디폴트 값이 스키마에 정의되어 있어서 REQUIRED라면 아예 생략도 가능  -->
+		</tx:attributes>
+	</tx:advice>
+	
+	<!-- aop 네임스페이스를 적용한 AOP 설정 빈  -->
 	<!-- case1. -->
 	<aop:config> 	<!-- AOP설정을 담는 부모 태그. 필요에 따라 AspectJAdvisorAutoProxyCreator를 빈으로 등록해줌 -->
 		<aop:pointcut id="transactionPointcut" expression="execution(* *..*ServiceImpl.upgrade*(..))" /> <!-- AspectJExpressionPointcut을 빈으로 등록해줌 -->
@@ -63,7 +69,7 @@
 		<!-- driverClass는 String타입이 아니라 java.lang.Class타입. 
 		스프링이 프로퍼티 값을, 수정자(set)메소드의 파라미터 타입을 참고로 해서 적절한 형태로 변환해 준다.-->
 		<property name="driverClass" value="com.mysql.jdbc.Driver"/>
-		<property name="url" value="jdbc:mysql://localhost:3306/testdb?characterEncoding=UTF-8"/>
+		<property name="url" value="jdbc:mysql://localhost:3306/testdb?serverTimezone=UTC&amp;verifyServerCertificate=false&amp;useSSL=false"/>
 		<property name="username" value="root"/>
 		<property name="password" value="1234"/>
 	</bean>
