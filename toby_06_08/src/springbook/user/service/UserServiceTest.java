@@ -9,28 +9,27 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static springbook.user.service.UserServiceImpl.MIN_LOGCOUNT_FOR_SILVER;
+import static springbook.user.service.UserServiceImpl.MIN_RECCOMEND_FOR_GOLD;
 
-import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
-import javax.sql.DataSource;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
-import org.springframework.aop.framework.ProxyFactoryBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.dao.TransientDataAccessResourceException;
 import org.springframework.mail.MailException;
 import org.springframework.mail.MailSender;
 import org.springframework.mail.SimpleMailMessage;
-import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.transaction.TransactionConfiguration;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,11 +40,10 @@ import springbook.user.dao.UserDao;
 import springbook.user.domain.Level;
 import springbook.user.domain.User;
 
-import static springbook.user.service.UserServiceImpl.MIN_LOGCOUNT_FOR_SILVER;
-import static springbook.user.service.UserServiceImpl.MIN_RECCOMEND_FOR_GOLD;
-
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations="/test-applicationContext.xml")
+@Transactional //테스트 클래스 내의 모든 메소드에 트랜잭션 적용
+@TransactionConfiguration(defaultRollback=false) //롤백 여부에 대한 기본 설정과 트랜잭션 매니저 빈을 지정하는데 사용. 디폴트 트랜잭션 매니저 아이디는 transactionManager. 
 public class UserServiceTest {
 	@Autowired
 	UserService userService; 
@@ -216,6 +214,7 @@ public class UserServiceTest {
 	}
 	
 	@Test
+	@Rollback //메소드에서 디폴트 설정과 다른 롤백 방법으로 재설정. 
 	public void add() {
 		userDao.deleteAll();
 		
@@ -273,26 +272,19 @@ public class UserServiceTest {
 		testUserService.getAll(); 
 	}
 	
+	
 	//트랜잭션 동기화 검증 테스트
-	//트랜잭션 매니저를 이용해 트랜잭션을 미리 시작하게 만든다.
 	@Test
+	//new :: @Transactional 어노테이션으로 메소드에 트랜잭션 적용. 테스트에 적용된 @Transactional은 테스트가 끝나면 자동으로 롤백됨.
+	//		 롤백을 원치않는다면 @Rollback(false) 어노테이션 적용.
+	@Transactional(readOnly = true) 
+	@Rollback(false) //@Rollback 어노테이션은 메소드 레벨에만 적용 가능. 
+	//만약 테스트 클래스의 모든 메소드에 트랜잭션을 적용하면서 모든 트랜잭션이 롤백되지 않고 커밋되게 하려면 
+	//모든 메소드에 @Rollback(false)를 적용하는 것보단, 클래스 레벨에 부여할 수 있는 @TransactionConfiguration 을 이용하면 편리.
 	public void transactionSync() {
-		
-		//트랜잭션 매니저를 이용해 트랜잭션을 미리 시작하게 만든다.
-		DefaultTransactionDefinition txDefinition = new DefaultTransactionDefinition(); //트랜잭션 정의는 기본 값을 사용.
-		txDefinition.setReadOnly(true); //읽기전용 트랜잭션으로 정의.
-		
-		//트랜잭션 매니저에게 트랜잭션을 요청. 기존에 시작된 트랜잭션이 없으니 새로운 트랜잭션을 시작시키고 트랜잭션 정보를 반환.
-		//동시에 만들어진 트랜잭션을 다른 곳에서도 사용할 수 있도록 '동기화'한다.
-		TransactionStatus txStatus = transactionManager.getTransaction(txDefinition);
-		
-		// 아래 3개의 메소드 호출은 앞에서 만들어진 트랜잭션에 모두 참여 (트랜젝션 전파 속성 : REQUIRED) 
-		userService.deleteAll();  //테스트 코드에서 시작한 트랜잭션에 참여한다면, 읽기전용 속성을 위반했으니 예외 발생.
-		
+		userService.deleteAll();  
 		userService.add(users.get(0));
 		userService.add(users.get(1));
-		
-		transactionManager.commit(txStatus); //앞에서 시작한 트랜잭션을 커밋.
 	}
 	
 	//트랜잭션 롤백 검증 테스트
