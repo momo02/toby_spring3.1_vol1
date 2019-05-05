@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+
+	<!-- 팩토리 빈 설정 -->
+	<!-- message 빈의 타입은 MessageFactoryBean이 아니라 Message 타입.
+		 이는 MessageFactoryBean의 getObjectType() 메소드가 돌려주는 타입으로 결정된다.
+		 또, getObject() 메소드가 생성해주는 오브젝트가 message 빈의 오브젝트가 된다.
+	-->
+	<bean id="message" class="springbook.learningtest.spring.factorybean.MessageFactoryBean">
+		<property name="text" value="Factory Bean" />
+	</bean>
+	
+</beans>

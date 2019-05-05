@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.0.xsd">
+	
+	<!-- 타깃 -->
+	<bean id="userService" class="springbook.user.service.UserServiceImpl">
+		<property name="userDao" ref="userDao"></property>
+		<property name="mailSender" ref="mailSender"></property>
+	</bean> 
+	
+	<!-- 테스트용 UserService의 등록 -->
+	<!-- cf) static 멤버 클래스는 $로 지정.(특정 테스트 클래스에서만 사용되는 클래스는 static 멤버 클래스로 정의하는 것이 편리) -->
+	<!-- cf) parent 애트리뷰트를 사용하면 다른 빈 설정의 내용을 상속받을 수 있다.
+		     parent="userService" 라고 하면 userService 빈의 모든 설정을 그대로 가져와서 사용하겠다는 뜻. 
+		     즉 DI를 위한 프로퍼티 설정은 userService 빈의 프로퍼티를 그대로 상속받아, 별도로 userDao나 mailSender프로퍼티를 지정해줄 필요 없음. -->
+	<bean id="testUserService" class="springbook.user.service.UserServiceTest$TestUserService" parent="userService" />
+	
+	<!-- new :: @Transactional을 이용한 트랜잭션 속성을 사용하는데 필요한 설정 -->
+	<tx:annotation-driven /> 
+	
+	<!-- old :: tx 네임스페이스를 이용한 설정 -->
+	<!-- 이 태그에 의해 TransactionInterceptor 빈이 등록됨. 트랜잭션 매니저의 빈 아이디가 transactionManager라면 생략 가능. -->
+	<!-- <tx:advice id="transactionAdvice"> 
+		<tx:attributes>
+			<tx:method name="get*" read-only="true"/>
+			<tx:method name="*"/> propagation="REQUIRED" 라면 생략 가능 
+		</tx:attributes>
+	</tx:advice> --> 
+	
+	<!-- aop 네임스페이스를 적용한 AOP 설정 빈  -->
+	<!-- old :: upgradeLevels()에만 트랜잭션이 적용되게 했던 기존 포인트컷 표현식을 모든 비즈니스 로직의 서비스 빈에 적용되도록 수정.
+	            표현식은 가장 단순한 빈 이름 패턴을 이용 (아이디가 Service로 끝나는 모든 빈에 transactionAdvice 빈의 부가기능을 적용) -->
+	<!-- <aop:config> 	
+		<aop:advisor advice-ref="transactionAdvice" pointcut="bean(*Service)"/>
+	</aop:config> -->
+	
+	<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<!-- DataSourceTransactionManager는 dataSource 빈으로부터 Connection을 가져와 트랜잭션 처리를 해야하므로 dataSource프로퍼티를 갖는다. -->
+		<property name="dataSource" ref="dataSource"></property>
+	</bean>
+	
+	<bean id="userDao" class="springbook.user.dao.UserDaoJdbc">
+		<property name="dataSource" ref="dataSource"/>
+	</bean>
+
+	<bean id="dataSource" class="org.springframework.jdbc.datasource.SimpleDriverDataSource">
+		<!-- driverClass는 String타입이 아니라 java.lang.Class타입. 
+		스프링이 프로퍼티 값을, 수정자(set)메소드의 파라미터 타입을 참고로 해서 적절한 형태로 변환해 준다.-->
+		<property name="driverClass" value="com.mysql.jdbc.Driver"/>
+		<property name="url" value="jdbc:mysql://localhost:3306/testdb?serverTimezone=UTC&amp;verifyServerCertificate=false&amp;useSSL=false"/>
+		<property name="username" value="root"/>
+		<property name="password" value="1234"/>
+	</bean>
+	
+	<!-- 테스트용 MailSender 구현 클래스로 변경 -->
+	<bean id="mailSender" class="springbook.user.service.DummyMailSender"/>
+		
+</beans>
