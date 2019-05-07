@@ -20,7 +20,7 @@
 		     즉 DI를 위한 프로퍼티 설정은 userService 빈의 프로퍼티를 그대로 상속받아, 별도로 userDao나 mailSender프로퍼티를 지정해줄 필요 없음. -->
 	<bean id="testUserService" class="springbook.user.service.UserServiceTest$TestUserService" parent="userService" />
 	
-	<!-- new :: @Transactional을 이용한 트랜잭션 속성을 사용하는데 필요한 설정 -->
+	<!-- @Transactional을 이용한 트랜잭션 속성을 사용하는데 필요한 설정 -->
 	<tx:annotation-driven /> 
 	
 	<!-- old :: tx 네임스페이스를 이용한 설정 -->
@@ -47,14 +47,19 @@
 	<bean id="userDao" class="springbook.user.dao.UserDaoJdbc">
 		<property name="dataSource" ref="dataSource"/>
 		<!-- new -->
+		<property name="sqlService" ref="sqlService"/>
+	</bean>
+
+	<!-- new -->
+	<bean id="sqlService" class="springbook.user.sqlservice.SimpleSqlService">
 		<property name="sqlMap">
 			<map>
-				<entry key="add" value="insert into users(id, name, password, level, login, recommend, email) values(?,?,?,?,?,?,?)"></entry>			
-				<entry key="get" value="select * from users where id = ?"></entry>			
-				<entry key="getAll" value="select * from users order by id"></entry>			
-				<entry key="deleteAll" value="delete from users"></entry>			
-				<entry key="getCount" value="select count(*) from users"></entry>			
-				<entry key="update" value="update users set name = ?, password = ?, level =?, login =?, recommend = ?, email = ? where id = ? "></entry>			
+				<entry key="userAdd" value="insert into users(id, name, password, level, login, recommend, email) values(?,?,?,?,?,?,?)"></entry>			
+				<entry key="userGet" value="select * from users where id = ?"></entry>			
+				<entry key="userGetAll" value="select * from users order by id"></entry>			
+				<entry key="userDeleteAll" value="delete from users"></entry>			
+				<entry key="userGetCount" value="select count(*) from users"></entry>			
+				<entry key="userUpdate" value="update users set name = ?, password = ?, level =?, login =?, recommend = ?, email = ? where id = ? "></entry>			
 			</map>
 		</property>
 	</bean>
