@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+	
+	<!-- 타깃 -->
+	<bean id="userService" class="springbook.user.service.UserServiceImpl">
+		<property name="userDao" ref="userDao"></property>
+		<property name="mailSender" ref="mailSender"></property>
+	</bean> 
+	
+	<!-- new :: 테스트용 UserService의 등록 -->
+	<!-- cf) static 멤버 클래스는 $로 지정.(특정 테스트 클래스에서만 사용되는 클래스는 static 멤버 클래스로 정의하는 것이 편리) -->
+	<!-- cf) parent 애트리뷰트를 사용하면 다른 빈 설정의 내용을 상속받을 수 있다.
+		     parent="userService" 라고 하면 userService 빈의 모든 설정을 그대로 가져와서 사용하겠다는 뜻. 
+		     즉 DI를 위한 프로퍼티 설정은 userService 빈의 프로퍼티를 그대로 상속받아, 별도로 userDao나 mailSender프로퍼티를 지정해줄 필요 없음. -->
+	<bean id="testUserService" class="springbook.user.service.UserServiceTest$TestUserServiceImpl" parent="userService" />
+	
+	<!-- 트랜잭션 어드바이스 빈 설정 -->
+	<bean id="transactionAdvice" class="springbook.user.service.TransactionAdvice">
+		<property name="transactionManager" ref="transactionManager"></property>
+	</bean>
+	
+	<!-- old -->
+	<!-- 포인트컷 빈 설정 -->
+	<!-- <bean id="transactionPointcut" class="org.springframework.aop.support.NameMatchMethodPointcut">
+		<property name="mappedName" value="upgrade*"></property>	
+	</bean> -->
+	
+	<!-- new :: 새로 만든 클래스 필터 지원 포인트컷을 빈으로 등록 -->
+	<bean id="transactionPointcut" class="springbook.user.service.NameMatchClassMethodPointcut">
+		<property name="mappedClassName" value="*ServiceImpl" /> <!-- 클래스 이름 패턴 -->
+		<property name="mappedName" value="upgrade*" /> <!-- 메소드 이름 패턴 -->
+	</bean>
+	
+	<!-- 어드바이스와 포인트컷을 담을 어드바이저 빈 설정-->
+	<bean id="tansactionAdvisor" class="org.springframework.aop.support.DefaultPointcutAdvisor">
+		<property name="advice" ref="transactionAdvice"/>
+		<property name="pointcut" ref="transactionPointcut"></property>
+	</bean>
+	
+	<!-- old :: 더 이상 명시적인 프록시 팩토리 빈을 등록하지 않는다. -->
+	<!-- ProxyFactoryBean 설정 -->
+	<!-- <bean id="userService" class="org.springframework.aop.framework.ProxyFactoryBean">
+		<property name="target" ref="userServiceImpl"/>
+		어드바이스와 어드바이저를 동시에 설정해줄 수 있는 프로퍼티.
+		리스트에 어드바이스나 어드바이저의 빈 아이디를 값으로 넣어주면됨. 
+		     만약, 타킷의 모든 메소드에 적용해도 좋기 때문에 포인트컷의 적용이 필요 없다면 transactionAdvice를 넣는다.
+		
+		<property name="interceptorNames">
+			<list> 
+				한 개 이상의 <value>태그를 넣을 수 있다.
+				<value>tansactionAdvisor</value>
+			</list>
+		</property>
+	</bean> -->
+	
+	<!-- new :: 어드바이저를 이용하는 자동 프록시 생성기 등록 -->
+	<!-- 스프링이 제공하는 빈 후처리기 중의 하나인 DefaultAdvisorAutoProxyCreator 
+	(스프링은 빈 후처리기가 빈으로 등록되어 있으면 빈 오브젝트가 생성될 때마다 빈 후처리기에 보내서 후처리 작업을 요청) -->
+	<!-- 자동 프록시 생성기인 DefaultAdvisorAutoProxyCreator는 등록된 빈 중에서 Advisor인터페이스를 구현한 것을 모두 찾는다.
+	     그리고 생성되는 모든 빈에 대해 어드바이저의 포인트 컷을 적용해보면서 프록시 적용 대상을 선정.
+	     빈 클래스가 프록시 선정 대상이라면 프록시를 만들어 원래 빈 오브젝트와 바꿔치기. -->
+	<bean class="org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator" />
+	
+	<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<!-- DataSourceTransactionManager는 dataSource 빈으로부터 Connection을 가져와 트랜잭션 처리를 해야하므로 dataSource프로퍼티를 갖는다. -->
+		<property name="dataSource" ref="dataSource"></property>
+	</bean>
+	
+	<bean id="userDao" class="springbook.user.dao.UserDaoJdbc">
+		<property name="dataSource" ref="dataSource"/>
+	</bean>
+
+	<bean id="dataSource" class="org.springframework.jdbc.datasource.SimpleDriverDataSource">
+		<!-- driverClass는 String타입이 아니라 java.lang.Class타입. 
+		스프링이 프로퍼티 값을, 수정자(set)메소드의 파라미터 타입을 참고로 해서 적절한 형태로 변환해 준다.-->
+		<property name="driverClass" value="com.mysql.jdbc.Driver"/>
+		<property name="url" value="jdbc:mysql://localhost:3306/toby_spring?characterEncoding=UTF-8"/>
+		<property name="username" value="root"/>
+		<property name="password" value="1234"/>
+	</bean>
+	
+	<bean id="mailSender" class="org.springframework.mail.javamail.JavaMailSenderImpl">
+		<property name="host" value="mail.server.com"></property>
+	</bean>
+	
+</beans>
