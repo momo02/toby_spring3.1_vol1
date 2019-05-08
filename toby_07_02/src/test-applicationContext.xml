@@ -3,7 +3,9 @@
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xmlns:aop="http://www.springframework.org/schema/aop"
 	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:context="http://www.springframework.org/schema/context"
 	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd
 		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
 		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.0.xsd">
 	
@@ -20,10 +22,13 @@
 		     즉 DI를 위한 프로퍼티 설정은 userService 빈의 프로퍼티를 그대로 상속받아, 별도로 userDao나 mailSender프로퍼티를 지정해줄 필요 없음. -->
 	<bean id="testUserService" class="springbook.user.service.UserServiceTest$TestUserService" parent="userService" />
 	
-	<!-- @Transactional을 이용한 트랜잭션 속성을 사용하는데 필요한 설정 -->
+	<!-- @Transactional이 붙은 타입과 메소드에 트랜잭션 부가기능을 담은 프록시를 추가하도록 만들어주는 후처리기 등록 -->
 	<tx:annotation-driven /> 
 	
-	<!-- old :: tx 네임스페이스를 이용한 설정 -->
+	<!-- 코드의 어노테이션을 이용해서 부가적인 빈 설정 또는 초기화 작업을 해주는 후처리기 등록 -->
+	<context:annotation-config />
+	
+	<!-- tx 네임스페이스를 이용한 설정 -->
 	<!-- 이 태그에 의해 TransactionInterceptor 빈이 등록됨. 트랜잭션 매니저의 빈 아이디가 transactionManager라면 생략 가능. -->
 	<!-- <tx:advice id="transactionAdvice"> 
 		<tx:attributes>
@@ -33,8 +38,8 @@
 	</tx:advice> --> 
 	
 	<!-- aop 네임스페이스를 적용한 AOP 설정 빈  -->
-	<!-- old :: upgradeLevels()에만 트랜잭션이 적용되게 했던 기존 포인트컷 표현식을 모든 비즈니스 로직의 서비스 빈에 적용되도록 수정.
-	            표현식은 가장 단순한 빈 이름 패턴을 이용 (아이디가 Service로 끝나는 모든 빈에 transactionAdvice 빈의 부가기능을 적용) -->
+	<!-- upgradeLevels()에만 트랜잭션이 적용되게 했던 기존 포인트컷 표현식을 모든 비즈니스 로직의 서비스 빈에 적용되도록 수정.
+	     표현식은 가장 단순한 빈 이름 패턴을 이용 (아이디가 Service로 끝나는 모든 빈에 transactionAdvice 빈의 부가기능을 적용) -->
 	<!-- <aop:config> 	
 		<aop:advisor advice-ref="transactionAdvice" pointcut="bean(*Service)"/>
 	</aop:config> -->
@@ -50,6 +55,7 @@
 	</bean>
 
 	<bean id="sqlService" class="springbook.user.sqlservice.XmlSqlService">
+		<property name="sqlmapFile" value="sqlmap.xml"/>
 	</bean>
 
 	<bean id="dataSource" class="org.springframework.jdbc.datasource.SimpleDriverDataSource">
