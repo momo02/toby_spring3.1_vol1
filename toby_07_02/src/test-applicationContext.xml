@@ -53,8 +53,12 @@
 		<property name="dataSource" ref="dataSource"/>
 		<property name="sqlService" ref="sqlService"/>
 	</bean>
-
+	
+	<!-- new :: 자신을 참조하는 sqlService 빈 설정 -->
+	<!-- 프로퍼티는 자기 자신을 참조 할 수 있다. -->
 	<bean id="sqlService" class="springbook.user.sqlservice.XmlSqlService">
+		<property name="sqlReader" ref="sqlService" />
+		<property name="sqlRegistry" ref="sqlService" />
 		<property name="sqlmapFile" value="sqlmap.xml"/>
 	</bean>
 
