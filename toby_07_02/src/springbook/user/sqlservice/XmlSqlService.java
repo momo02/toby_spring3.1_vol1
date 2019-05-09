@@ -14,7 +14,7 @@ import springbook.user.sqlservice.jaxb.SqlType;
 import springbook.user.sqlservice.jaxb.Sqlmap;
 
 /* 
- new :: 7.2.5 자기참조 빈으로 시작하기
+ 7.2.5 자기참조 빈으로 시작하기
 - 다중 인터페이스 구현과 간접 참조 : XmlSql클래스 하나가 SqlService, SqlReader, SqlRegistry 라는 세 개의 인터페이스를 구현,
   같은 클래스 코드이지만 책임이 다른 코드는 직접 접근하지 않고 인터페이스를 통해 간접적으로 사용. 
   ==> 같은 클래스 안에 구현된 내용이지만 SqlService의 메소드에서 Sql을 읽을 때는 SqlReader인터페이스를 통해, 
@@ -63,7 +63,7 @@ public class XmlSqlService implements SqlService, SqlRegistry, SqlReader {
 	
 
 	//--------------- SqlReader 구현 ------------------
-	//new :: loadSql()에 있던 코드를 SqlReader 메소드로 가져온다. 초기화를 위해 무엇을 할 것인가와 SQL을 어떻게 읽는지를 분리.
+	//loadSql()에 있던 코드를 SqlReader 메소드로 가져온다. 초기화를 위해 무엇을 할 것인가와 SQL을 어떻게 읽는지를 분리.
 	@Override
 	public void read(SqlRegistry sqlRegistry) {
 		String contextPath = Sqlmap.class.getPackage().getName();
@@ -73,11 +73,7 @@ public class XmlSqlService implements SqlService, SqlRegistry, SqlReader {
 			Unmarshaller unmarshaller = context.createUnmarshaller();
 			InputStream is = UserDao.class.getResourceAsStream(this.sqlmapFile); //UserDao와 같은 클래스 패스의 sqlmap.xml파일을 변환.
 			Sqlmap sqlmap = (Sqlmap) unmarshaller.unmarshal(is);
-//old			
-//			//읽어온 SQL을 맵으로 저장해둔다.
-//			for(SqlType sql : sqlmap.getSql()) {
-//				sqlMap.put(sql.getKey(), sql.getValue());
-//			}
+
 			for(SqlType sql : sqlmap.getSql()) {
 				sqlRegistry.registerSql(sql.getKey(), sql.getValue());
 			}
