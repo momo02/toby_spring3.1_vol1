@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema xmlns="http://www.w3.org/2001/XMLSchema"
+	targetNamespace="http://www.example.org/sqlmap"
+	xmlns:tns="http://www.example.org/sqlmap"
+	elementFormDefault="qualified">
+	
+	<element name="sqlmap">
+		<complexType>
+			<sequence>
+				<!-- 필요한 개수만큼 <sql>을 포함할 수 있게 한다. -->
+				<element name="sql" maxOccurs="unbounded" type="tns:sqlType"></element>
+			</sequence>
+		</complexType>
+	</element>
+	
+	<complexType name="sqlType"> <!-- <sql>에 대한 정의를 시작 -->
+		<simpleContent>
+			<extension base="string"> <!-- SQL문장을 넣을 스트링 타입을 정의 -->
+				<attribute name="key" use="required" type="string" /> <!-- 검색을 위한 키 값은 <sql>의 key 애트리뷰트에 넣는다. 필수 값. -->
+			</extension>
+		</simpleContent>
+	</complexType>
+		
+</schema>
